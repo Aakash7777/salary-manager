@@ -109,10 +109,10 @@ describe('EmployeesService.create', () => {
   it('stores the salary as integer minor units, exact even where floats are not', () => {
     const { service } = setup();
 
-    // 95000.29 * 100 is 9500028.999999998 in floating point.
-    const created = service.create({ ...priyaInput, countryCode: 'US', salaryMajor: 95_000.29 });
+    // 75000.35 * 100 is 7500035.000000001 in floating point.
+    const created = service.create({ ...priyaInput, countryCode: 'US', salaryMajor: 75_000.35 });
 
-    expect(created.salaryMinor).toBe(9_500_029);
+    expect(created.salaryMinor).toBe(7_500_035);
   });
 
   it('stores the input as normalised by the shared schema', () => {
