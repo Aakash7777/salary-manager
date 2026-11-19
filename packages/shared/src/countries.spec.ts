@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FX_TABLE_VERSION, currencyFor, getCountry, toUsdMinor } from './countries.js';
+import {
+  FX_TABLE_VERSION,
+  currencyFor,
+  getCountry,
+  minorUnitsFor,
+  toUsdMinor,
+} from './countries.js';
 
 describe('FX_TABLE_VERSION', () => {
   it('identifies the fixed FX table the rates below belong to', () => {
@@ -36,6 +42,16 @@ describe('currencyFor', () => {
 
   it('throws on an unknown country code', () => {
     expect(() => currencyFor('ZZ')).toThrow('Unknown country code: ZZ');
+  });
+});
+
+describe('minorUnitsFor', () => {
+  it.each(['INR', 'USD', 'GBP', 'EUR', 'SGD'])('returns 2 minor units for %s', (currency) => {
+    expect(minorUnitsFor(currency)).toBe(2);
+  });
+
+  it('throws on an unknown currency', () => {
+    expect(() => minorUnitsFor('JPY')).toThrow('Unknown currency: JPY');
   });
 });
 
