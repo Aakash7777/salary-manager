@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "dev": "npm run build -w @salary-manager/shared && concurrently -k -n shared,api,web -c gray,green,blue \"npm run dev -w @salary-manager/shared\" \"npm run dev -w @salary-manager/api\" \"npm run dev -w @salary-manager/web\"",
+    "seed": "npm run build -w @salary-manager/shared && npm run seed -w @salary-manager/api --",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",

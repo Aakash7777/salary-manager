@@ -8,12 +8,14 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "db:generate": "drizzle-kit generate",
+    "seed": "nest build && node dist/seed/seed-cli.js",
     "test": "vitest run",
     "test:unit": "vitest run --exclude \"**/*.int.spec.ts\"",
     "test:int": "vitest run .int.spec --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@nestjs/common": "^12.5.1",
     "@nestjs/core": "^12.5.1",
     "@nestjs/platform-express": "^12.5.1",
