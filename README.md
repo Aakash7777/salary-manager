@@ -105,6 +105,8 @@ or connect the GitHub repo in the dashboard so every push to `main` deploys. The
 
 ## API
 
+Full, interactive documentation is served by the app at **`/api/docs`** (http://localhost:3000/api/docs when running locally). The request schemas in it are generated from the shared zod schemas, so they cannot drift from the real validation rules.
+
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/employees` | Directory: search, filters, sort, pagination |
@@ -119,3 +121,4 @@ or connect the GitHub repo in the dashboard so every push to `main` deploys. The
 | GET | `/api/insights/countries` | Pay statistics per country |
 | GET | `/api/insights/countries/:code/job-titles` | Pay per job title, and outliers |
 | GET | `/health` | Health check |
+| GET | `/api/docs` | Interactive API documentation (Swagger UI); the OpenAPI 3.1 document is at `/api/docs/openapi.json` |
