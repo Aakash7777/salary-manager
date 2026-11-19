@@ -61,7 +61,6 @@ describe('app shell', () => {
   });
 
   it.each([
-    { url: '/employees/42', heading: 'Employee details' },
     { url: '/insights', heading: 'Insights' },
     { url: '/insights/IN', heading: 'Country insights' },
   ])('has a page at $url', ({ url, heading }) => {

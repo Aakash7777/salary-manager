@@ -111,8 +111,6 @@ export const handlers = [
   }),
 ];
 
-export const server = setupServer(...handlers);
-
 export const EMPLOYEES_URL = '*/api/employees';
 
 export function emptyPage() {
@@ -125,3 +123,186 @@ export function serverError() {
     { status: 500 },
   );
 }
+
+// ---------------------------------------------------------------------------------------------
+// One employee in full, as GET /api/employees/:id returns it, and the write endpoints.
+// ---------------------------------------------------------------------------------------------
+
+export interface ApiSalaryChange {
+  id: number;
+  employeeId: number;
+  oldSalaryMinor: number | null;
+  oldCurrency: string | null;
+  newSalaryMinor: number;
+  currency: string;
+  effectiveDate: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface ApiEmployeeDetail extends ApiEmployee {
+  salaryHistory: ApiSalaryChange[];
+  roleMedianMinor: number | null;
+  pctVsRoleMedian: number | null;
+}
+
+function change(
+  id: number,
+  rest: Omit<ApiSalaryChange, 'id' | 'employeeId' | 'createdAt'>,
+): ApiSalaryChange {
+  return { id, employeeId: 2, ...rest, createdAt: '2026-11-19T10:30:00.000Z' };
+}
+
+/**
+ * Priya started in the UK, moved to India, took a pay cut and was later promoted, so her
+ * history has one entry of every kind. Newest first, as the API returns it.
+ */
+export const PRIYA_DETAIL: ApiEmployeeDetail = {
+  ...employee(2, 'Priya Sharma', {
+    jobTitle: 'Senior Engineer',
+    department: 'Engineering',
+    countryCode: 'IN',
+    currency: 'INR',
+    salaryMinor: 324_000_000,
+    employmentType: 'FULL_TIME',
+    hireDate: '2021-03-12',
+  }),
+  salaryHistory: [
+    change(13, {
+      oldSalaryMinor: 300_000_000,
+      oldCurrency: 'INR',
+      newSalaryMinor: 324_000_000,
+      currency: 'INR',
+      effectiveDate: '2025-04-01',
+      reason: 'Promotion to Senior Engineer',
+    }),
+    change(12, {
+      oldSalaryMinor: 310_000_000,
+      oldCurrency: 'INR',
+      newSalaryMinor: 300_000_000,
+      currency: 'INR',
+      effectiveDate: '2023-07-01',
+      reason: 'Reduced working hours',
+    }),
+    change(11, {
+      oldSalaryMinor: 2_800_000,
+      oldCurrency: 'GBP',
+      newSalaryMinor: 310_000_000,
+      currency: 'INR',
+      effectiveDate: '2022-01-10',
+      reason: 'Relocated to Bengaluru',
+    }),
+    change(10, {
+      oldSalaryMinor: null,
+      oldCurrency: null,
+      newSalaryMinor: 2_800_000,
+      currency: 'GBP',
+      effectiveDate: '2021-03-12',
+      reason: 'Starting salary',
+    }),
+  ],
+  // (32,40,000 - 30,50,000) / 30,50,000 = 6.2%
+  roleMedianMinor: 305_000_000,
+  pctVsRoleMedian: 6.2,
+};
+
+/** What POST /api/employees answers with: the newly created employee, id 101. */
+export const CREATED_EMPLOYEE: ApiEmployee = employee(101, 'Neha Kapoor', {
+  jobTitle: 'Engineer',
+  department: 'Engineering',
+  countryCode: 'IN',
+  currency: 'INR',
+  salaryMinor: 180_000_000,
+  employmentType: 'CONTRACTOR',
+  hireDate: '2026-11-01',
+});
+
+const CREATED_DETAIL: ApiEmployeeDetail = {
+  ...CREATED_EMPLOYEE,
+  salaryHistory: [
+    {
+      id: 500,
+      employeeId: 101,
+      oldSalaryMinor: null,
+      oldCurrency: null,
+      newSalaryMinor: 180_000_000,
+      currency: 'INR',
+      effectiveDate: '2026-11-01',
+      reason: 'Starting salary',
+      createdAt: '2026-11-19T10:30:00.000Z',
+    },
+  ],
+  roleMedianMinor: null,
+  pctVsRoleMedian: null,
+};
+
+/** Every write (POST, PATCH, DELETE) the app has made in the current test, oldest first. */
+export const apiWrites: { method: string; path: string; body: unknown }[] = [];
+
+async function recordWrite(request: Request): Promise<unknown> {
+  const body: unknown = request.method === 'DELETE' ? undefined : await request.json();
+  apiWrites.push({ method: request.method, path: new URL(request.url).pathname, body });
+  return body;
+}
+
+export const EMPLOYEE_URL = '*/api/employees/:id';
+export const CREATE_URL = '*/api/employees';
+export const SALARY_CHANGES_URL = '*/api/employees/:id/salary-changes';
+export const PRIYA_URL = '*/api/employees/2';
+
+export function notFound(id: string) {
+  return HttpResponse.json(
+    { error: { code: 'EMPLOYEE_NOT_FOUND', message: `Employee ${id} was not found` } },
+    { status: 404 },
+  );
+}
+
+export function invalidInput(fields: { path: string; message: string }[]) {
+  return HttpResponse.json(
+    { error: { code: 'INVALID_INPUT', message: 'The input is invalid', fields } },
+    { status: 400 },
+  );
+}
+
+export function emailInUse(email: string) {
+  return HttpResponse.json(
+    {
+      error: {
+        code: 'EMAIL_ALREADY_IN_USE',
+        message: `An employee with the email ${email} already exists`,
+      },
+    },
+    { status: 409 },
+  );
+}
+
+export function detailOf(overrides: Partial<ApiEmployeeDetail>) {
+  return HttpResponse.json({ ...PRIYA_DETAIL, ...overrides });
+}
+
+handlers.push(
+  http.get(EMPLOYEE_URL, ({ params }) => {
+    if (params.id === '2') return HttpResponse.json(PRIYA_DETAIL);
+    if (params.id === '101') return HttpResponse.json(CREATED_DETAIL);
+    return notFound(String(params.id));
+  }),
+  http.post(SALARY_CHANGES_URL, async ({ request }) => {
+    await recordWrite(request);
+    return HttpResponse.json(PRIYA_DETAIL, { status: 201 });
+  }),
+  http.post(CREATE_URL, async ({ request }) => {
+    await recordWrite(request);
+    return HttpResponse.json(CREATED_EMPLOYEE, { status: 201 });
+  }),
+  http.patch(EMPLOYEE_URL, async ({ request }) => {
+    const body = (await recordWrite(request)) as Record<string, unknown>;
+    return HttpResponse.json({ ...PRIYA_DETAIL, ...body });
+  }),
+  http.delete(EMPLOYEE_URL, async ({ request }) => {
+    await recordWrite(request);
+    return new HttpResponse(null, { status: 204 });
+  }),
+);
+
+// Created last, once every handler above exists.
+export const server = setupServer(...handlers);
