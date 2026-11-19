@@ -44,7 +44,8 @@ flowchart LR
 | GET | `/api/employees/export.csv?…same filters` | CSV export |
 | GET | `/api/employees/:id` | Detail + salary history |
 | POST | `/api/employees` | Create |
-| PATCH | `/api/employees/:id` | Update (a salary change needs `reason` and `effectiveDate`) |
+| PATCH | `/api/employees/:id` | Update details. Never salary, unless the country changes: then `newSalaryMajor` and `reason` are required |
+| POST | `/api/employees/:id/salary-changes` | Change salary (`newSalaryMajor`, `effectiveDate`, `reason`) and record it in history |
 | DELETE | `/api/employees/:id` | Remove |
 | GET | `/api/insights/summary` | Headcount and USD payroll |
 | GET | `/api/insights/countries` | Stats per country |
