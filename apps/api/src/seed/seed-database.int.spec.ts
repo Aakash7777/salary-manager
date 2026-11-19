@@ -405,4 +405,16 @@ describe('runSeed', () => {
     expect(history).toHaveLength(report.salaryChanges);
     expect(new Set(history.map((entry) => entry.employeeId)).size).toBe(200);
   });
+
+  it('with reset, leaves the database identical to a freshly seeded one, ids included', () => {
+    const fresh = seeded(SMALL);
+    const reseeded = createTestDb();
+    seedDatabase(reseeded, SMALL);
+
+    runSeed(reseeded, { ...SMALL, reset: true });
+
+    expect(rowsOf(reseeded).people).toEqual(fresh.people);
+    expect(rowsOf(reseeded).history).toEqual(fresh.history);
+    expect(rowsOf(reseeded).people[0]?.id).toBe(1);
+  });
 });

@@ -26,6 +26,9 @@ export function runSeed(db: AppDatabase, options: SeedOptions & { reset: boolean
   if (existing > 0) {
     // Their salary history goes with them (foreign key cascade).
     db.delete(employees).run();
+    // SQLite remembers the highest id each AUTOINCREMENT table has used. Forgetting it makes
+    // ids start at 1 again, so a reseeded database matches a freshly seeded one exactly.
+    db.$client.exec("DELETE FROM sqlite_sequence WHERE name IN ('employees', 'salary_changes')");
   }
   return seedDatabase(db, options);
 }
