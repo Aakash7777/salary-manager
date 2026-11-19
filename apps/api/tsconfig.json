@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["node"],
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "../..",
+    "paths": {
+      "@salary-manager/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": ["src", "vitest.config.ts"]
+}

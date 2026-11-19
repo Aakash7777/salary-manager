@@ -6,3 +6,4 @@ coverage/
 *.db
 *.sqlite
 .remember/
+.claude/settings.local.json

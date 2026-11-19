@@ -13,3 +13,4 @@
 | # | Task | Prompt (short) | What I kept | What I rejected / fixed, and why |
 |---|---|---|---|---|
 | 1 | Requirements draft | "Draft a one-page requirements doc for…" | Scope structure | |
+| 2 | Monorepo scaffold (PLAN step 2) | "Set up the monorepo described in docs/ARCHITECTURE.md…" | npm workspaces, strict TS, ESLint + Prettier, Vitest in all three packages, CI. Agent's calls: Node 26 LTS (local Node 20 was too old for current Vitest/jsdom), Nest 12 as native ESM, TypeScript pinned to 6.0.x because typescript-eslint and the Nest CLI don't support 7 yet, `shared` consumed from source in tests/typecheck and from `dist` at runtime. | Agent first planned an SWC plugin for Nest decorators under Vitest, then dropped it after checking the official Nest 12 template and proving type-based DI works with Vite 8 alone. Agent's first lint run failed on a stray `.remember/` file; fixed by ignoring it. |
