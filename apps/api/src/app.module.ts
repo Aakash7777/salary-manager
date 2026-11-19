@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ClockModule } from './clock/clock.module.js';
+import { EmployeesModule } from './employees/employees.module.js';
 
 @Module({
-  imports: [ClockModule],
+  imports: [EmployeesModule],
 })
 export class AppModule {}

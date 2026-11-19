@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import * as schema from './schema.js';
 
 // Resolves to apps/api/drizzle from both src/db (tests, dev) and dist/db (built app).
@@ -18,3 +19,6 @@ export function openDatabase(filename: string) {
 }
 
 export type AppDatabase = ReturnType<typeof openDatabase>;
+
+/** What queries run against: the database itself, or a transaction opened on it. */
+export type DatabaseExecutor = BaseSQLiteDatabase<'sync', Database.RunResult, typeof schema>;

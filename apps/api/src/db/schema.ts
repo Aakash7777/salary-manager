@@ -43,3 +43,8 @@ export const salaryChanges = sqliteTable(
   },
   (table) => [index('salary_changes_employee_id_idx').on(table.employeeId)],
 );
+
+export type EmployeeRow = typeof employees.$inferSelect;
+export type NewEmployeeRow = typeof employees.$inferInsert;
+export type SalaryChangeRow = typeof salaryChanges.$inferSelect;
+export type NewSalaryChangeRow = typeof salaryChanges.$inferInsert;
