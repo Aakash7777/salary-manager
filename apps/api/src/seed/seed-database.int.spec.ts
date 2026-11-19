@@ -6,7 +6,7 @@ import type { AppDatabase } from '../db/database.js';
 import { type EmployeeRow, type SalaryChangeRow, employees, salaryChanges } from '../db/schema.js';
 import { EmployeesRepository } from '../employees/employees.repository.js';
 import { EmployeesService } from '../employees/employees.service.js';
-import { DatabaseNotEmptyError, runSeed } from './run-seed.js';
+import { DatabaseNotEmptyError, runSeed, seedIfEmpty } from './run-seed.js';
 import { seedDatabase } from './seed-database.js';
 
 const REFERENCE_DATE = '2026-11-01';
@@ -416,5 +416,42 @@ describe('runSeed', () => {
     expect(rowsOf(reseeded).people).toEqual(fresh.people);
     expect(rowsOf(reseeded).history).toEqual(fresh.history);
     expect(rowsOf(reseeded).people[0]?.id).toBe(1);
+  });
+});
+
+describe('seedIfEmpty', () => {
+  it('seeds an empty database and says so', () => {
+    const db = createTestDb();
+
+    const outcome = seedIfEmpty(db, SMALL);
+
+    expect(outcome).toEqual({
+      seeded: true,
+      employees: 200,
+      salaryChanges: rowsOf(db).history.length,
+    });
+    expect(rowsOf(db).people).toHaveLength(200);
+  });
+
+  it('leaves a database that already has employees exactly as it was, and says so', () => {
+    const db = createTestDb();
+    seedDatabase(db, { ...SMALL, count: 3 });
+    const before = rowsOf(db);
+
+    const outcome = seedIfEmpty(db, SMALL);
+
+    expect(outcome).toEqual({ seeded: false, employees: 3 });
+    expect(rowsOf(db)).toEqual(before);
+  });
+
+  it('does nothing the second time, so a restart never seeds twice', () => {
+    const db = createTestDb();
+    seedIfEmpty(db, SMALL);
+    const afterFirstBoot = rowsOf(db);
+
+    const secondBoot = seedIfEmpty(db, SMALL);
+
+    expect(secondBoot).toEqual({ seeded: false, employees: 200 });
+    expect(rowsOf(db)).toEqual(afterFirstBoot);
   });
 });

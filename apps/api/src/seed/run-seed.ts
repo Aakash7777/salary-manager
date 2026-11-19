@@ -32,3 +32,15 @@ export function runSeed(db: AppDatabase, options: SeedOptions & { reset: boolean
   }
   return seedDatabase(db, options);
 }
+
+export type SeedIfEmptyOutcome =
+  { seeded: true; employees: number; salaryChanges: number } | { seeded: false; employees: number };
+
+/** What the app does on boot: fill a brand-new database, and never touch one that has data. */
+export function seedIfEmpty(db: AppDatabase, options: SeedOptions): SeedIfEmptyOutcome {
+  const existing = db.select({ total: count() }).from(employees).get()?.total ?? 0;
+  if (existing > 0) {
+    return { seeded: false, employees: existing };
+  }
+  return { seeded: true, ...seedDatabase(db, options) };
+}

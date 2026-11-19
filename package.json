@@ -12,6 +12,8 @@
   ],
   "scripts": {
     "dev": "npm run build -w @salary-manager/shared && concurrently -k -n shared,api,web -c gray,green,blue \"npm run dev -w @salary-manager/shared\" \"npm run dev -w @salary-manager/api\" \"npm run dev -w @salary-manager/web\"",
+    "docker:build": "docker build -t salary-manager .",
+    "docker:run": "docker run --rm -p 3000:3000 -v salary-manager-data:/data salary-manager",
     "seed": "npm run build -w @salary-manager/shared && npm run seed -w @salary-manager/api --",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint . && prettier --check .",
