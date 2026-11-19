@@ -8,7 +8,9 @@ import {
   updateEmployeeDetailsInputSchema,
 } from '@salary-manager/shared';
 import { Clock } from '../clock/clock.js';
-import type { EmployeeRow, NewEmployeeRow, SalaryChangeRow } from '../db/schema.js';
+import type { EmployeeRow, SalaryChangeRow } from '../db/schema.js';
+import { changedFields, isCountryChange } from '../domain/employee-details.js';
+import { salaryChangeIssue } from '../domain/salary-change.js';
 import { EmployeesRepository } from './employees.repository.js';
 import { EmployeeNotFoundError, InvalidInputError } from './errors.js';
 
@@ -91,19 +93,10 @@ export class EmployeesService {
     }
 
     const { newSalaryMajor, effectiveDate, reason } = parsed.data;
-    if (effectiveDate < employee.hireDate) {
-      throw new InvalidInputError([
-        { path: 'effectiveDate', message: 'Effective date cannot be before the hire date' },
-      ]);
-    }
     const newSalaryMinor = toMinor(newSalaryMajor, employee.currency);
-    if (newSalaryMinor === employee.salaryMinor) {
-      throw new InvalidInputError([
-        {
-          path: 'newSalaryMajor',
-          message: 'New salary must be different from the current salary',
-        },
-      ]);
+    const issue = salaryChangeIssue(employee, { effectiveDate, newSalaryMinor });
+    if (issue) {
+      throw new InvalidInputError([issue]);
     }
 
     const timestamp = this.clock.now().toISOString();
@@ -137,17 +130,13 @@ export class EmployeesService {
     }
 
     const { newSalaryMajor, reason, ...details } = parsed.data;
-    const changedDetails: Partial<NewEmployeeRow> = Object.fromEntries(
-      Object.entries(details).filter(
-        ([field, value]) => value !== undefined && value !== employee[field as keyof EmployeeRow],
-      ),
-    );
+    const changedDetails = changedFields<EmployeeRow>(employee, details);
     if (Object.keys(changedDetails).length === 0) {
       return employee;
     }
 
     const timestamp = this.clock.now().toISOString();
-    if (changedDetails.countryCode === undefined) {
+    if (!isCountryChange(employee.countryCode, details.countryCode)) {
       return this.repository.updateEmployee(id, { ...changedDetails, updatedAt: timestamp });
     }
 
@@ -155,7 +144,7 @@ export class EmployeesService {
       // The shared schema requires both whenever the country changes.
       throw new Error('A country change reached the service without a new salary and a reason');
     }
-    const newCurrency = currencyFor(changedDetails.countryCode);
+    const newCurrency = currencyFor(details.countryCode);
     const newSalaryMinor = toMinor(newSalaryMajor, newCurrency);
 
     return this.repository.inTransaction((repository) => {

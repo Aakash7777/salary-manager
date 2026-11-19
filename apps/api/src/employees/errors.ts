@@ -1,7 +1,4 @@
-export interface InputIssue {
-  path: string;
-  message: string;
-}
+import type { InputIssue } from '../domain/input-issue.js';
 
 export class InvalidInputError extends Error {
   constructor(readonly issues: InputIssue[]) {
