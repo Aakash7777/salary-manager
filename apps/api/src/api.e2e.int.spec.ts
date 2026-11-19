@@ -74,6 +74,7 @@ const priyaNotFound = {
 describe('HTTP API', () => {
   const originalDatabasePath = process.env.DATABASE_PATH;
   let app: INestApplication;
+  let loggedErrors: string[];
   const api = () => request(app.getHttpServer() as Server);
 
   beforeEach(async () => {
@@ -83,6 +84,15 @@ describe('HTTP API', () => {
       .useValue(new FixedClock(NOW))
       .compile();
     app = moduleRef.createNestApplication();
+    // Keeps Nest's log lines out of the test output and records what was logged as an error.
+    loggedErrors = [];
+    app.useLogger({
+      log: () => undefined,
+      warn: () => undefined,
+      error: (message: unknown) => {
+        loggedErrors.push(String(message));
+      },
+    });
     await app.init();
   });
 
@@ -369,6 +379,24 @@ describe('HTTP API', () => {
       });
       expect(response.text).not.toContain('history insert failed');
       expect(response.text).not.toContain('salary_changes');
+    });
+
+    it('logs the real error on the server, so it is not lost', async () => {
+      app.get<AppDatabase>(DATABASE).$client.exec(`
+        CREATE TRIGGER fail_history_insert BEFORE INSERT ON salary_changes
+        BEGIN SELECT RAISE(ABORT, 'history insert failed'); END;
+      `);
+
+      await api().post('/api/employees').send(priyaInput);
+
+      expect(loggedErrors).toHaveLength(1);
+      expect(loggedErrors[0]).toContain('history insert failed');
+    });
+
+    it('does not log an expected error such as a 404 as a server error', async () => {
+      await api().get('/api/employees/999');
+
+      expect(loggedErrors).toEqual([]);
     });
   });
 });
