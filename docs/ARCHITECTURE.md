@@ -1,0 +1,71 @@
+# Architecture & Design Decisions
+
+## Shape
+```
+salary-manager/
+├─ apps/api      NestJS + Drizzle ORM + better-sqlite3
+├─ apps/web      React (Vite) + TanStack Query + Mantine
+└─ packages/shared  zod schemas, types, country→currency + FX config
+```
+The whole app ships as **one Docker image**: Nest serves the built React app under `/` and the API under `/api`. The SQLite file sits on a persistent volume (Railway or Fly.io).
+
+```mermaid
+flowchart LR
+  UI[React SPA] -->|JSON /api| C[Controllers<br/>zod validation]
+  C --> S[Services<br/>use cases, transactions]
+  S --> D[Domain<br/>pure fns: stats, money, FX]
+  S --> R[Repositories<br/>Drizzle]
+  R --> DB[(SQLite)]
+```
+
+## Key decisions
+| Decision | Why | Trade-off |
+|---|---|---|
+| **SQLite** | 10k rows is tiny. There's no server to run, and tests can use `:memory:` with real SQL. | Only one writer at a time. Fine for one HR team. Move to Postgres if there are many concurrent writers. |
+| **Drizzle + better-sqlite3** | Typed SQL with no codegen step, and a synchronous driver that keeps tests fast and simple. | Smaller ecosystem than Prisma. |
+| **Shared zod schemas** | One place defines validation, used by the API pipe and the React forms. | Couples the two apps to one package (acceptable in a monorepo). |
+| **Money as integer minor units + currency** | Floating-point money causes rounding bugs. The currency comes from the country, so it can't be entered inconsistently. | Values must be formatted at the edges. |
+| **Countries and FX as versioned config, not a table** | Small, rarely changes, and reviewed in a PR. | Changing it needs a deploy. |
+| **Median computed in a pure function** | SQLite has no MEDIAN. Sorting 10k integers takes milliseconds and the function is easy to unit-test. | At around 1M rows: precompute or use window functions. |
+| **Salary change + history in one transaction** | History must never drift from the current salary. | None worth noting. |
+| **Single deployable** | One URL, no CORS, cheapest to host. | Web and API can't scale separately (not needed). |
+
+## Data model
+- `employees(id, full_name, email UNIQUE, job_title, department, country_code, currency, salary_minor INT, employment_type, hire_date, created_at, updated_at)`
+- `salary_changes(id, employee_id FK, old_salary_minor, new_salary_minor, currency, effective_date, reason, created_at)`
+- Indexes: `(country_code, job_title)`, `(department)`, `(full_name)`, `(email)`.
+
+## API
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/employees?search&country&department&jobTitle&sort&page&pageSize` | Directory |
+| GET | `/api/employees/export.csv?…same filters` | CSV export |
+| GET | `/api/employees/:id` | Detail + salary history |
+| POST | `/api/employees` | Create |
+| PATCH | `/api/employees/:id` | Update (a salary change needs `reason` and `effectiveDate`) |
+| DELETE | `/api/employees/:id` | Remove |
+| GET | `/api/insights/summary` | Headcount and USD payroll |
+| GET | `/api/insights/countries` | Stats per country |
+| GET | `/api/insights/countries/:code/job-titles` | Stats per role, with outliers |
+| GET | `/api/meta` | Countries, departments and titles for the filters |
+| POST | `/api/simulations/raise` | Raise simulator: cost per country in local currency + indicative USD total (read-only, nothing saved) |
+| GET | `/api/docs` | API docs (Swagger) |
+| GET | `/health` | Health check |
+
+## Product rules
+- A salary change's effective date **cannot be in the future**. The change applies immediately.
+- Salary is **not** editable in "Edit details". It only changes through "Change salary", so every change has a reason.
+- Changing an employee's **country** requires a new salary in the new currency, and that is recorded in the history.
+- Creating an employee writes the first history entry ("Starting salary").
+
+## Testing strategy
+- **Domain unit tests (most of the suite):** stats (median of even/odd/empty sets), money formatting, FX conversion, outlier rule, zod schemas.
+- **Service tests on in-memory SQLite:** real SQL, still runs in milliseconds, nothing mocked. Mocking repositories would test the mocks rather than the queries.
+- **A few API e2e tests** with supertest against the Nest app.
+- **Web:** Vitest + Testing Library for the employee form validation and the filter → query wiring.
+- **Determinism:** seeded faker, an injected clock, and a fresh DB for every test.
+
+## Performance notes (fill in with measured numbers)
+- Seed: 10k inserts in one transaction with a prepared statement. Target < 1 s.
+- Directory query with filters and pagination: target < 50 ms server time.
+- Insights: GROUP BY for count/min/max/avg, median in memory. Target < 100 ms.
