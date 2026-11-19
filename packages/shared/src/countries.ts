@@ -1,3 +1,5 @@
+import { assertMinorAmount } from './assert-minor-amount.js';
+
 export const FX_TABLE_VERSION = '2026-11';
 
 export interface Country {
@@ -31,17 +33,21 @@ export function currencyFor(code: string): string {
   return getCountry(code).currency;
 }
 
-export function toUsdMinor(amountMinor: number, currency: string): number {
-  if (!Number.isInteger(amountMinor)) {
-    throw new Error(`amountMinor must be an integer number of minor units: ${amountMinor}`);
-  }
-  if (amountMinor < 0) {
-    throw new Error(`amountMinor must not be negative: ${amountMinor}`);
-  }
+function firstCountryUsing(currency: string): Country {
   const country = COUNTRIES.find((candidate) => candidate.currency === currency);
   if (!country) {
     throw new Error(`Unknown currency: ${currency}`);
   }
+  return country;
+}
+
+export function minorUnitsFor(currency: string): number {
+  return firstCountryUsing(currency).minorUnits;
+}
+
+export function toUsdMinor(amountMinor: number, currency: string): number {
+  assertMinorAmount(amountMinor);
+  const country = firstCountryUsing(currency);
 
   // The rate becomes an integer and the maths runs in BigInt so no float ever touches the
   // amount. Every currency here has 2 minor units, like USD, so no unit rescaling is needed.

@@ -112,7 +112,7 @@ describe('formatMoney', () => {
   it.each(['INR', 'USD', 'GBP', 'EUR', 'SGD'])(
     'separates the code and the %s amount with a regular space, not a non-breaking one',
     (currency) => {
-      expect(formatMoney(123_456, currency)).not.toMatch(/[  ]/);
+      expect(formatMoney(123_456, currency)).not.toMatch(/[\u00a0\u202f]/);
     },
   );
 
