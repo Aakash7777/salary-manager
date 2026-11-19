@@ -4,6 +4,7 @@ import { http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   TODAY,
+  type Scoped,
   TOMORROW,
   currentPath,
   freezeTodayAt19Nov2026,
@@ -31,21 +32,19 @@ async function openAddEmployee() {
   return { user, drawer };
 }
 
-type Drawer = ReturnType<typeof within>;
-
-async function chooseCountry(user: UserEvent, drawer: Drawer, country: string): Promise<void> {
+async function chooseCountry(user: UserEvent, drawer: Scoped, country: string): Promise<void> {
   await user.click(drawer.getByRole('combobox', { name: 'Country' }));
   await user.click(await drawer.findByRole('option', { name: country }));
 }
 
-async function typeDate(user: UserEvent, drawer: Drawer, isoDate: string): Promise<void> {
+async function typeDate(user: UserEvent, drawer: Scoped, isoDate: string): Promise<void> {
   const input = drawer.getByRole('textbox', { name: 'Hire date' });
   await user.clear(input);
   await user.type(input, isoDate);
   await user.tab();
 }
 
-async function fillValidEmployee(user: UserEvent, drawer: Drawer): Promise<void> {
+async function fillValidEmployee(user: UserEvent, drawer: Scoped): Promise<void> {
   await user.type(drawer.getByRole('textbox', { name: 'Full name' }), 'Neha Kapoor');
   await user.type(drawer.getByRole('textbox', { name: 'Email' }), 'Neha.Kapoor@acme.test');
   await user.type(drawer.getByRole('combobox', { name: 'Job title' }), 'Engineer');
@@ -56,7 +55,7 @@ async function fillValidEmployee(user: UserEvent, drawer: Drawer): Promise<void>
   await typeDate(user, drawer, '2026-11-01');
 }
 
-function submit(user: UserEvent, drawer: Drawer): Promise<void> {
+function submit(user: UserEvent, drawer: Scoped): Promise<void> {
   return user.click(drawer.getByRole('button', { name: 'Add employee' }));
 }
 

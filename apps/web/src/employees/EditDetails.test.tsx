@@ -2,14 +2,12 @@ import { screen, waitFor, within } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { freezeTodayAt19Nov2026, renderApp } from '../test/render-app';
+import { type Scoped, freezeTodayAt19Nov2026, renderApp } from '../test/render-app';
 import { EMPLOYEE_URL, PRIYA_URL, apiWrites, detailOf, emailInUse, server } from '../test/server';
 
 beforeEach(() => {
   freezeTodayAt19Nov2026();
 });
-
-type Drawer = ReturnType<typeof within>;
 
 /** Opens "Edit details" on Priya's page and returns queries scoped to the drawer. */
 async function openEditDetails() {
@@ -27,12 +25,12 @@ async function replaceText(user: UserEvent, input: HTMLElement, text: string): P
   }
 }
 
-async function chooseCountry(user: UserEvent, drawer: Drawer, country: string): Promise<void> {
+async function chooseCountry(user: UserEvent, drawer: Scoped, country: string): Promise<void> {
   await user.click(drawer.getByRole('combobox', { name: 'Country' }));
   await user.click(await drawer.findByRole('option', { name: country }));
 }
 
-function saveButton(drawer: Drawer): HTMLElement {
+function saveButton(drawer: Scoped): HTMLElement {
   return drawer.getByRole('button', { name: 'Save changes' });
 }
 

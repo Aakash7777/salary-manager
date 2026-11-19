@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TOMORROW, freezeTodayAt19Nov2026, renderApp } from '../test/render-app';
+import { type Scoped, TOMORROW, freezeTodayAt19Nov2026, renderApp } from '../test/render-app';
 import {
   PRIYA_DETAIL,
   PRIYA_URL,
@@ -18,8 +18,6 @@ beforeEach(() => {
   freezeTodayAt19Nov2026();
 });
 
-type Modal = ReturnType<typeof within>;
-
 /** Opens "Change salary" on Priya's page and returns queries scoped to the modal. */
 async function openChangeSalary() {
   const { user } = renderApp('/employees/2');
@@ -29,11 +27,11 @@ async function openChangeSalary() {
   return { user, modal };
 }
 
-function salaryInput(modal: Modal): HTMLElement {
+function salaryInput(modal: Scoped): HTMLElement {
   return modal.getByRole('textbox', { name: 'New annual salary' });
 }
 
-function submit(user: UserEvent, modal: Modal): Promise<void> {
+function submit(user: UserEvent, modal: Scoped): Promise<void> {
   return user.click(modal.getByRole('button', { name: 'Update salary' }));
 }
 

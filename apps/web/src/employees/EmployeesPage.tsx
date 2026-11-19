@@ -1,9 +1,10 @@
 import { Badge, Button, Group, Paper, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { IconDownload, IconPlus } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { ReactElement } from 'react';
+import { type ReactElement, useState } from 'react';
 import { api } from '../api/client';
 import { ActiveFilters } from './ActiveFilters';
+import { AddEmployeeDrawer } from './AddEmployeeDrawer';
 import { DirectoryFilters } from './DirectoryFilters';
 import { DirectoryFooter } from './DirectoryFooter';
 import { EmptyState, ErrorState } from './DirectoryStates';
@@ -17,6 +18,7 @@ const META_STALE_MS = 5 * 60 * 1000;
 export function EmployeesPage(): ReactElement {
   const { query, update, clearFilters } = useDirectoryQuery();
   const apiParams = toApiParams(query);
+  const [isAdding, setIsAdding] = useState(false);
 
   const employees = useQuery({
     queryKey: ['employees', apiParams],
@@ -55,7 +57,14 @@ export function EmployeesPage(): ReactElement {
           >
             Export CSV
           </Button>
-          <Button leftSection={<IconPlus size={16} aria-hidden />}>Add employee</Button>
+          <Button
+            leftSection={<IconPlus size={16} aria-hidden />}
+            onClick={() => {
+              setIsAdding(true);
+            }}
+          >
+            Add employee
+          </Button>
         </Group>
       </Group>
 
@@ -102,6 +111,14 @@ export function EmployeesPage(): ReactElement {
           </>
         )}
       </Paper>
+
+      <AddEmployeeDrawer
+        opened={isAdding}
+        meta={meta.data}
+        onClose={() => {
+          setIsAdding(false);
+        }}
+      />
     </Stack>
   );
 }
