@@ -11,7 +11,7 @@ import {
   employees,
   salaryChanges,
 } from '../db/schema.js';
-import { EmailAlreadyInUseError } from './errors.js';
+import { EmailAlreadyInUseError, EmployeeNotFoundError } from './errors.js';
 
 function isDuplicateEmail(error: unknown): boolean {
   // Drizzle may wrap the driver error, so the SQLite error can be the error or its cause.
@@ -45,6 +45,31 @@ export class EmployeesRepository {
       }
       throw error;
     }
+  }
+
+  updateEmployee(id: number, changes: Partial<NewEmployeeRow>): EmployeeRow {
+    try {
+      const updated = this.db
+        .update(employees)
+        .set(changes)
+        .where(eq(employees.id, id))
+        .returning()
+        .get();
+      if (!updated) {
+        throw new EmployeeNotFoundError(id);
+      }
+      return updated;
+    } catch (error) {
+      if (changes.email !== undefined && isDuplicateEmail(error)) {
+        throw new EmailAlreadyInUseError(changes.email);
+      }
+      throw error;
+    }
+  }
+
+  /** Returns false when there was no such employee. The salary history goes with it (FK cascade). */
+  deleteEmployee(id: number): boolean {
+    return this.db.delete(employees).where(eq(employees.id, id)).run().changes > 0;
   }
 
   insertSalaryChange(change: NewSalaryChangeRow): void {
