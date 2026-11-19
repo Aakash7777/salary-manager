@@ -32,8 +32,10 @@ flowchart LR
 
 ## Data model
 - `employees(id, full_name, email UNIQUE, job_title, department, country_code, currency, salary_minor INT, employment_type, hire_date, created_at, updated_at)`
-- `salary_changes(id, employee_id FK, old_salary_minor, new_salary_minor, currency, effective_date, reason, created_at)`
-- Indexes: `(country_code, job_title)`, `(department)`, `(full_name)`, `(email)`.
+- `salary_changes(id, employee_id FK ON DELETE CASCADE, old_salary_minor INT NULL, old_currency NULL, new_salary_minor INT, currency, effective_date, reason, created_at)`
+  - `old_salary_minor` and `old_currency` are null on the "Starting salary" row. On a normal change `old_currency` equals `currency`. On a country change it is the previous currency, so the old value is never read in the wrong currency.
+- Indexes on `employees`: `(country_code, job_title)`, `(department)`, `(full_name)`, `(email)` unique.
+- Index on `salary_changes`: `(employee_id)`, for the history lookup on the employee page.
 
 ## API
 | Method | Path | Purpose |
