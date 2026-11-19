@@ -5,6 +5,7 @@ import { currentParams, currentPath, renderApp } from '../test/render-app';
 import {
   EMPLOYEES_URL,
   FIRST_PAGE,
+  SECOND_PAGE,
   TOTAL_EMPLOYEES,
   emptyPage,
   employeeRequests,
@@ -85,7 +86,7 @@ describe('Employees directory: search and filters', () => {
   it('sends the chosen country and goes back to page 1', async () => {
     const { user } = await renderDirectory('/employees?page=3');
 
-    await user.click(screen.getByRole('textbox', { name: 'Country' }));
+    await user.click(screen.getByRole('combobox', { name: 'Country' }));
     await user.click(await screen.findByRole('option', { name: 'India' }));
 
     await waitFor(() => expect(lastEmployeeRequest()).toMatchObject({ country: 'IN' }));
@@ -96,9 +97,9 @@ describe('Employees directory: search and filters', () => {
   it('offers the departments and job titles from the API, and sends the ones chosen', async () => {
     const { user } = await renderDirectory();
 
-    await user.click(screen.getByRole('textbox', { name: 'Department' }));
+    await user.click(screen.getByRole('combobox', { name: 'Department' }));
     await user.click(await screen.findByRole('option', { name: 'Finance' }));
-    await user.click(screen.getByRole('textbox', { name: 'Job title' }));
+    await user.click(screen.getByRole('combobox', { name: 'Job title' }));
     await user.click(await screen.findByRole('option', { name: 'Analyst' }));
 
     await waitFor(() =>
@@ -109,7 +110,7 @@ describe('Employees directory: search and filters', () => {
 
   it('reads search, filters, sort and page from the URL when the page loads', async () => {
     await renderDirectory(
-      '/employees?search=sharma&country=IN&department=Engineering&jobTitle=Senior%20Engineer&sort=hireDate&order=desc&page=2',
+      '/employees?search=sharma&country=IN&department=Engineering&jobTitle=Senior%20Engineer&sort=hireDate&order=desc&page=3',
     );
 
     expect(employeeRequests[0]).toEqual({
@@ -119,13 +120,13 @@ describe('Employees directory: search and filters', () => {
       jobTitle: 'Senior Engineer',
       sort: 'hireDate',
       order: 'desc',
-      page: '2',
+      page: '3',
       pageSize: '25',
     });
     expect(screen.getByRole('textbox', { name: 'Search by name or email' })).toHaveValue('sharma');
-    expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('India');
-    expect(screen.getByRole('textbox', { name: 'Department' })).toHaveValue('Engineering');
-    expect(screen.getByRole('textbox', { name: 'Job title' })).toHaveValue('Senior Engineer');
+    expect(screen.getByRole('combobox', { name: 'Country' })).toHaveValue('India');
+    expect(screen.getByRole('combobox', { name: 'Department' })).toHaveValue('Engineering');
+    expect(screen.getByRole('combobox', { name: 'Job title' })).toHaveValue('Senior Engineer');
   });
 
   it('shows a removable chip for each active filter, and the number of results', async () => {
@@ -153,7 +154,7 @@ describe('Employees directory: search and filters', () => {
 
   it('clears search and filters with "Clear filters", keeping the sort and returning to page 1', async () => {
     const { user } = await renderDirectory(
-      '/employees?search=sharma&country=IN&sort=salary&order=desc&page=2',
+      '/employees?search=sharma&country=IN&sort=salary&order=desc&page=3',
     );
 
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
@@ -261,6 +262,22 @@ describe('Employees directory: pagination', () => {
 
   it('requests the next page, keeping the current rows visible until it arrives', async () => {
     const { user } = await renderDirectory();
+    server.use(
+      http.get(
+        EMPLOYEES_URL,
+        async ({ request }) => {
+          employeeRequests.push(Object.fromEntries(new URL(request.url).searchParams));
+          await delay(100);
+          return HttpResponse.json({
+            items: SECOND_PAGE,
+            total: TOTAL_EMPLOYEES,
+            page: 2,
+            pageSize: 25,
+          });
+        },
+        { once: true },
+      ),
+    );
 
     await user.click(screen.getByRole('button', { name: 'Next page' }));
 
@@ -290,7 +307,7 @@ describe('Employees directory: export', () => {
 
   it('carries the current search, filters and sort in the export link, but not the page', async () => {
     await renderDirectory(
-      '/employees?search=sharma&country=IN&department=Engineering&jobTitle=Engineer&sort=salary&order=desc&page=2',
+      '/employees?search=sharma&country=IN&department=Engineering&jobTitle=Engineer&sort=salary&order=desc&page=3',
     );
 
     expect(exportLinkParams()).toEqual({

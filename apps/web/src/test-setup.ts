@@ -5,7 +5,7 @@ import { employeeRequests, server } from './test/server';
 
 // A request the tests did not plan for is a bug in the test or the app, so it fails loudly.
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' });
+  server.listen({ onUnhandledFrame: 'error' });
 });
 
 afterEach(() => {
