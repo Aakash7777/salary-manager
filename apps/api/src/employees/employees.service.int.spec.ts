@@ -224,6 +224,9 @@ describe('EmployeesService.getById', () => {
     expect(service.getById(created.id)).toEqual({
       ...priyaStored,
       salaryHistory: [priyaStartingSalary],
+      // Priya is the only Senior Engineer in India, so there is no role median to compare with.
+      roleMedianMinor: null,
+      pctVsRoleMedian: null,
     });
   });
 

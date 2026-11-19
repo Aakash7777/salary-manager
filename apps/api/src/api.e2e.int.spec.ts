@@ -128,7 +128,13 @@ describe('HTTP API', () => {
       const response = await api().get('/api/employees/1');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ ...priya, salaryHistory: [priyaStartingSalary] });
+      expect(response.body).toEqual({
+        ...priya,
+        salaryHistory: [priyaStartingSalary],
+        // Priya is the only Senior Engineer in India, so there is no role median to compare with.
+        roleMedianMinor: null,
+        pctVsRoleMedian: null,
+      });
     });
 
     it('GET /api/employees returns a page, applying filters, sort and paging from the query string', async () => {
