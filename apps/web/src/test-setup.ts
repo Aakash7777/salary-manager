@@ -1,9 +1,24 @@
+import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { employeeRequests, server } from './test/server';
 
-afterEach(cleanup);
+// A request the tests did not plan for is a bug in the test or the app, so it fails loudly.
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+});
 
-// jsdom has no matchMedia, which MantineProvider calls to detect the colour scheme.
+afterEach(() => {
+  cleanup();
+  server.resetHandlers();
+  employeeRequests.length = 0;
+});
+
+afterAll(() => {
+  server.close();
+});
+
+// jsdom lacks these browser APIs, which Mantine's provider, Select and ScrollArea call.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
@@ -17,3 +32,11 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   }),
 });
+
+class ResizeObserverStub {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+window.ResizeObserver = ResizeObserverStub;
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
