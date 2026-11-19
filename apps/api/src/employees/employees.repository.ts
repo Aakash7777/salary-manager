@@ -120,6 +120,24 @@ export class EmployeesRepository {
     return { items, total: counted?.total ?? 0 };
   }
 
+  findDistinctDepartments(): string[] {
+    return this.db
+      .selectDistinct({ department: employees.department })
+      .from(employees)
+      .orderBy(asc(employees.department))
+      .all()
+      .map((row) => row.department);
+  }
+
+  findDistinctJobTitles(): string[] {
+    return this.db
+      .selectDistinct({ jobTitle: employees.jobTitle })
+      .from(employees)
+      .orderBy(asc(employees.jobTitle))
+      .all()
+      .map((row) => row.jobTitle);
+  }
+
   findSalaryHistory(employeeId: number): SalaryChangeRow[] {
     return this.db
       .select()

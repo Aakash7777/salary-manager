@@ -3,6 +3,7 @@ import {
   changeSalaryInputSchema,
   createEmployeeInputSchema,
   currencyFor,
+  listCountries,
   listEmployeesQuerySchema,
   toMinor,
   updateEmployeeDetailsInputSchema,
@@ -23,6 +24,13 @@ export interface EmployeeListPage {
   total: number;
   page: number;
   pageSize: number;
+}
+
+/** What the directory filters and the employee form offer as choices. */
+export interface EmployeeMeta {
+  countries: { code: string; name: string; currency: string }[];
+  departments: string[];
+  jobTitles: string[];
 }
 
 function invalidInput(issues: { path: PropertyKey[]; message: string }[]): InvalidInputError {
@@ -78,6 +86,14 @@ export class EmployeesService {
     }
     const { items, total } = this.repository.findPage(parsed.data);
     return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
+  }
+
+  getMeta(): EmployeeMeta {
+    return {
+      countries: listCountries().map(({ code, name, currency }) => ({ code, name, currency })),
+      departments: this.repository.findDistinctDepartments(),
+      jobTitles: this.repository.findDistinctJobTitles(),
+    };
   }
 
   getById(id: number): EmployeeWithSalaryHistory {

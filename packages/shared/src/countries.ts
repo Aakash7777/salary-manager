@@ -29,6 +29,10 @@ export function getCountry(code: string): Country {
   return country;
 }
 
+export function listCountries(): Country[] {
+  return [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
 export function currencyFor(code: string): string {
   return getCountry(code).currency;
 }

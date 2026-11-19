@@ -3,6 +3,7 @@ import {
   FX_TABLE_VERSION,
   currencyFor,
   getCountry,
+  listCountries,
   minorUnitsFor,
   toUsdMinor,
 } from './countries.js';
@@ -26,6 +27,30 @@ describe('getCountry', () => {
 
   it('throws on an unknown country code', () => {
     expect(() => getCountry('ZZ')).toThrow('Unknown country code: ZZ');
+  });
+});
+
+describe('listCountries', () => {
+  it('returns every supported country, sorted by name', () => {
+    expect(listCountries().map((country) => `${country.code} ${country.name}`)).toEqual([
+      'DE Germany',
+      'IN India',
+      'SG Singapore',
+      'GB United Kingdom',
+      'US United States',
+    ]);
+  });
+
+  it('returns the same entries as getCountry', () => {
+    for (const country of listCountries()) {
+      expect(country).toEqual(getCountry(country.code));
+    }
+  });
+
+  it('hands out a fresh list, so a caller cannot reorder or empty the config', () => {
+    listCountries().length = 0;
+
+    expect(listCountries()).toHaveLength(5);
   });
 });
 
