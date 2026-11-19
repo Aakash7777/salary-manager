@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  type ListEmployeesQuery,
   changeSalaryInputSchema,
   createEmployeeInputSchema,
   currencyFor,
@@ -10,6 +11,7 @@ import {
 } from '@salary-manager/shared';
 import { Clock } from '../clock/clock.js';
 import type { EmployeeRow, SalaryChangeRow } from '../db/schema.js';
+import { EMPLOYEE_CSV_HEADER_LINE, employeeCsvLine } from '../domain/csv.js';
 import { changedFields, isCountryChange } from '../domain/employee-details.js';
 import { type RoleComparison, compareWithRole } from '../domain/role-comparison.js';
 import { salaryChangeIssue } from '../domain/salary-change.js';
@@ -28,6 +30,15 @@ export interface EmployeeListPage {
   page: number;
   pageSize: number;
 }
+
+export interface CsvExport {
+  filename: string;
+  chunks: Iterable<string>;
+}
+
+// Excel only reads a CSV as UTF-8 when it starts with this mark.
+const UTF8_BYTE_ORDER_MARK = String.fromCharCode(0xfeff);
+const EXPORT_BATCH_SIZE = 1_000;
 
 /** What the directory filters and the employee form offer as choices. */
 export interface EmployeeMeta {
@@ -89,6 +100,32 @@ export class EmployeesService {
     }
     const { items, total } = this.repository.findPage(parsed.data);
     return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
+  }
+
+  exportCsv(query: unknown): CsvExport {
+    // Validated here, not inside the generator, so a bad filter fails before any output.
+    const parsed = listEmployeesQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw invalidInput(parsed.error.issues);
+    }
+    return {
+      filename: `employees-${this.clock.today()}.csv`,
+      chunks: this.csvChunks(parsed.data),
+    };
+  }
+
+  /** The file in pieces: the header, then one piece per batch of rows, read only as needed. */
+  private *csvChunks(query: ListEmployeesQuery): Generator<string> {
+    yield `${UTF8_BYTE_ORDER_MARK}${EMPLOYEE_CSV_HEADER_LINE}`;
+    for (let page = 1; ; page += 1) {
+      const batch = this.repository.findRows({ ...query, page, pageSize: EXPORT_BATCH_SIZE });
+      if (batch.length > 0) {
+        yield batch.map(employeeCsvLine).join('');
+      }
+      if (batch.length < EXPORT_BATCH_SIZE) {
+        return;
+      }
+    }
   }
 
   getMeta(): EmployeeMeta {

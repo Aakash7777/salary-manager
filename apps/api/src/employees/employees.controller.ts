@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import {
   Body,
   Controller,
@@ -9,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
 import type { EmployeeRow } from '../db/schema.js';
 import { parseEmployeeId } from './employee-id.js';
@@ -26,6 +28,16 @@ export class EmployeesController {
   @Get()
   list(@Query() query: unknown): EmployeeListPage {
     return this.employees.list(query);
+  }
+
+  // Declared before ':id' so "export.csv" is not read as an employee id.
+  @Get('export.csv')
+  exportCsv(@Query() query: unknown): StreamableFile {
+    const { filename, chunks } = this.employees.exportCsv(query);
+    return new StreamableFile(Readable.from(chunks, { objectMode: false }), {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Get(':id')

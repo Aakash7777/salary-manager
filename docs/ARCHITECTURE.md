@@ -73,4 +73,5 @@ flowchart LR
 - Directory query with filters and pagination: target < 50 ms server time. **Measured: 3.0 ms** for the default page and **5.1 ms** with search + country filter + salary sort (median of 15 requests).
 - Insights: one slim query, then count/min/median/avg/max in memory with the pure `summarize` function (no SQL GROUP BY: it was not needed). Target < 100 ms. **Measured: summary 9.7 ms, countries 9.9 ms, India's job titles and outliers 7.1 ms** (median of 15 requests; the slowest single request was 27 ms).
 - Employee detail with role median: **2.0 ms**.
+- CSV export of all 10,000 employees (1.13 MB, streamed in batches of 1,000): **133 ms** median, 146 ms slowest of 15 runs.
 - All timings are full HTTP round trips with curl to the built API on localhost, against the 10,000-employee seed in a SQLite file (Node 26, Windows 11, 2026-11-19). They are a single-user check, not a load test.

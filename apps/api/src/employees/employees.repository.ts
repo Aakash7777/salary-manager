@@ -81,8 +81,43 @@ export class EmployeesRepository {
   }
 
   findPage(query: ListEmployeesQuery): { items: EmployeeRow[]; total: number } {
+    const counted = this.db
+      .select({ total: count() })
+      .from(employees)
+      .where(this.matching(query))
+      .get();
+
+    return { items: this.findRows(query), total: counted?.total ?? 0 };
+  }
+
+  /** One page of matching employees, without counting them: what a batched export needs. */
+  findRows(query: ListEmployeesQuery): EmployeeRow[] {
+    // Sorting by salary compares raw minor-unit amounts, so across countries it mixes
+    // currencies (INR 1,800,000 sorts above USD 165,000). That is deliberate and kept
+    // simple; the UI explains it next to the salary column.
+    const sortColumn = {
+      name: sql`${employees.fullName} COLLATE NOCASE`,
+      salary: employees.salaryMinor,
+      hireDate: employees.hireDate,
+    }[query.sort];
+    const direction = query.order === 'desc' ? desc : asc;
+
+    return (
+      this.db
+        .select()
+        .from(employees)
+        .where(this.matching(query))
+        // The id tiebreaker keeps rows with equal sort values in one fixed order across pages.
+        .orderBy(direction(sortColumn), asc(employees.id))
+        .limit(query.pageSize)
+        .offset((query.page - 1) * query.pageSize)
+        .all()
+    );
+  }
+
+  private matching(query: ListEmployeesQuery) {
     const searchPattern = query.search ? `%${escapeLikeWildcards(query.search)}%` : undefined;
-    const matching = and(
+    return and(
       // SQLite's LIKE ignores case for ASCII letters only: "müller" finds "Müller", but
       // "MÜLLER" does not, because Ü and ü are compared as different characters.
       searchPattern
@@ -95,29 +130,6 @@ export class EmployeesRepository {
       query.department ? eq(employees.department, query.department) : undefined,
       query.jobTitle ? eq(employees.jobTitle, query.jobTitle) : undefined,
     );
-
-    // Sorting by salary compares raw minor-unit amounts, so across countries it mixes
-    // currencies (INR 1,800,000 sorts above USD 165,000). That is deliberate and kept
-    // simple; the UI explains it next to the salary column.
-    const sortColumn = {
-      name: sql`${employees.fullName} COLLATE NOCASE`,
-      salary: employees.salaryMinor,
-      hireDate: employees.hireDate,
-    }[query.sort];
-    const direction = query.order === 'desc' ? desc : asc;
-
-    const items = this.db
-      .select()
-      .from(employees)
-      .where(matching)
-      // The id tiebreaker keeps rows with equal sort values in one fixed order across pages.
-      .orderBy(direction(sortColumn), asc(employees.id))
-      .limit(query.pageSize)
-      .offset((query.page - 1) * query.pageSize)
-      .all();
-    const counted = this.db.select({ total: count() }).from(employees).where(matching).get();
-
-    return { items, total: counted?.total ?? 0 };
   }
 
   /** Salaries of everyone with this job title in this country. */
