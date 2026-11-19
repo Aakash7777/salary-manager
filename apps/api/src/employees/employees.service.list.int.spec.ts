@@ -196,6 +196,27 @@ describe('EmployeesService.list search', () => {
   it('treats a backslash as plain text', () => {
     expect(namesOf({ search: '\\' })).toEqual([]);
   });
+
+  it('finds "Müller" when searching "müller", because only the ASCII letter M differs in case', () => {
+    const germanService = new EmployeesService(
+      new EmployeesRepository(createTestDb()),
+      new FixedClock(NOW),
+    );
+    germanService.create({
+      fullName: 'Jürgen Müller',
+      email: 'juergen.mueller@acme.test',
+      jobTitle: 'Engineer',
+      department: 'Engineering',
+      countryCode: 'DE',
+      salaryMajor: 70_000,
+      employmentType: 'FULL_TIME',
+      hireDate: '2022-01-10',
+    });
+
+    const found = germanService.list({ search: 'müller' }).items;
+
+    expect(found.map((employee) => employee.fullName)).toEqual(['Jürgen Müller']);
+  });
 });
 
 describe('EmployeesService.list filters', () => {

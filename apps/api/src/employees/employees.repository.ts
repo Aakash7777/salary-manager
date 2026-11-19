@@ -58,6 +58,8 @@ export class EmployeesRepository {
   findPage(query: ListEmployeesQuery): { items: EmployeeRow[]; total: number } {
     const searchPattern = query.search ? `%${escapeLikeWildcards(query.search)}%` : undefined;
     const matching = and(
+      // SQLite's LIKE ignores case for ASCII letters only: "müller" finds "Müller", but
+      // "MÜLLER" does not, because Ü and ü are compared as different characters.
       searchPattern
         ? or(
             sql`${employees.fullName} LIKE ${searchPattern} ESCAPE '\\'`,
