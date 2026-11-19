@@ -1,0 +1,283 @@
+import {
+  Anchor,
+  Avatar,
+  Badge,
+  Box,
+  Breadcrumbs,
+  Button,
+  Group,
+  Paper,
+  Skeleton,
+  Stack,
+  Table,
+  Text,
+  Title,
+  VisuallyHidden,
+} from '@mantine/core';
+import { formatMoney, listCountries } from '@salary-manager/shared';
+import { IconAlertTriangle, IconMapOff, IconUsersGroup } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { Link, useParams } from 'react-router';
+import {
+  type CountryJobTitles,
+  type CountryPay,
+  type CountryRef,
+  type PayOutlier,
+  api,
+} from '../api/client';
+import { PageMessage } from '../components/PageMessage';
+import { initialsOf } from '../employees/format';
+import { NUMERIC_CELL, PAY_STATS_HEADERS, PayStatsCells } from './PayStatsCells';
+import { gapFromMedianLabel, pluralise } from './insights-format';
+
+function supportedCountry(code: string): CountryRef | undefined {
+  // Codes are exact: "in" is not India.
+  return listCountries().find((country) => country.code === code);
+}
+
+function CountrySummary({ stats }: { stats: CountryPay }): ReactElement {
+  const figures: [label: string, amountMinor: number][] = [
+    ['Median', stats.medianMinor],
+    ['Average', stats.avgMinor],
+  ];
+
+  return (
+    <Group component="section" aria-label="Country summary" gap="xl">
+      {figures.map(([label, amountMinor]) => (
+        <Stack key={label} gap={0} align="flex-end">
+          <Text size="sm" c="dimmed">
+            {label}
+          </Text>
+          <Text aria-label={label} fz="lg" fw={700} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {formatMoney(amountMinor, stats.currency)}
+          </Text>
+        </Stack>
+      ))}
+    </Group>
+  );
+}
+
+function PayByJobTitle({ data }: { data: CountryJobTitles }): ReactElement {
+  const title = `Pay by job title in ${data.country.name}`;
+
+  return (
+    <Paper withBorder>
+      <Text fw={600} p="md">
+        {title}
+      </Text>
+      <Table.ScrollContainer minWidth={760}>
+        <Table verticalSpacing="sm" aria-label={title}>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Job title</Table.Th>
+              {PAY_STATS_HEADERS.map((header) => (
+                <Table.Th key={header} style={NUMERIC_CELL}>
+                  {header}
+                </Table.Th>
+              ))}
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.jobTitles.map((row) => (
+              <Table.Tr key={row.jobTitle}>
+                <Table.Td fw={600}>{row.jobTitle}</Table.Td>
+                <PayStatsCells stats={row} currency={data.country.currency} />
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+    </Paper>
+  );
+}
+
+function OutlierRow({
+  outlier,
+  currency,
+}: {
+  outlier: PayOutlier;
+  currency: string;
+}): ReactElement {
+  return (
+    <Table.Tr>
+      <Table.Td>
+        <Group gap="sm" wrap="nowrap">
+          <Avatar color="indigo" radius="xl" size="md" aria-hidden>
+            {initialsOf(outlier.fullName)}
+          </Avatar>
+          <Text fw={600}>{outlier.fullName}</Text>
+        </Group>
+      </Table.Td>
+      <Table.Td>{outlier.jobTitle}</Table.Td>
+      <Table.Td style={NUMERIC_CELL}>{formatMoney(outlier.salaryMinor, currency)}</Table.Td>
+      <Table.Td style={NUMERIC_CELL}>{formatMoney(outlier.roleMedianMinor, currency)}</Table.Td>
+      <Table.Td>
+        <Badge variant="light" color={outlier.direction === 'above' ? 'orange' : 'blue'}>
+          {gapFromMedianLabel(outlier.differencePct)}
+        </Badge>
+      </Table.Td>
+      <Table.Td style={NUMERIC_CELL}>
+        <Anchor component={Link} to={`/employees/${outlier.employeeId}`} size="sm">
+          View profile
+        </Anchor>
+      </Table.Td>
+    </Table.Tr>
+  );
+}
+
+function Outliers({ data }: { data: CountryJobTitles }): ReactElement {
+  const { country, outliers } = data;
+
+  return (
+    <Paper component="section" aria-label="Outliers" withBorder>
+      <Stack gap={4} p="md">
+        <Group gap="sm">
+          <Text fw={600}>Outliers</Text>
+          <Badge variant="light" color="gray" aria-label="Number of outliers">
+            {outliers.length}
+          </Badge>
+        </Group>
+        <Text size="sm" c="dimmed">
+          {`Paid more than 25% above or below the median for their job title in ${country.name}.`}
+        </Text>
+      </Stack>
+      {outliers.length === 0 ? (
+        <Text p="md" pt={0}>
+          {`No outliers in ${country.name}. Everyone is within 25% of the median for their job title.`}
+        </Text>
+      ) : (
+        <Table.ScrollContainer minWidth={760}>
+          <Table verticalSpacing="sm" aria-label={`Outliers in ${country.name}`}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Job title</Table.Th>
+                <Table.Th style={NUMERIC_CELL}>Annual salary</Table.Th>
+                <Table.Th style={NUMERIC_CELL}>Role median</Table.Th>
+                <Table.Th>vs median</Table.Th>
+                <Table.Th aria-hidden />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {outliers.map((outlier) => (
+                <OutlierRow
+                  key={outlier.employeeId}
+                  outlier={outlier}
+                  currency={country.currency}
+                />
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      )}
+    </Paper>
+  );
+}
+
+function LoadingSkeleton(): ReactElement {
+  return (
+    <Stack gap="lg">
+      <VisuallyHidden>Loading country insights</VisuallyHidden>
+      <Skeleton height={260} radius="md" />
+      <Skeleton height={220} radius="md" />
+    </Stack>
+  );
+}
+
+export function CountryInsightsPage(): ReactElement {
+  const { countryCode = '' } = useParams();
+  const country = supportedCountry(countryCode);
+
+  const countries = useQuery({
+    queryKey: ['insights', 'countries'],
+    queryFn: ({ signal }) => api.getInsightsCountries(signal),
+    enabled: country !== undefined,
+  });
+  const jobTitles = useQuery({
+    queryKey: ['insights', 'countries', countryCode, 'job-titles'],
+    queryFn: ({ signal }) => api.getCountryJobTitles(countryCode, signal),
+    enabled: country !== undefined,
+  });
+
+  if (!country) {
+    return (
+      <PageMessage
+        icon={<IconMapOff size={28} aria-hidden />}
+        color="gray"
+        title="Country not found"
+      >
+        <Text c="dimmed">There is no supported country with this code.</Text>
+        <Button component={Link} to="/insights" variant="light">
+          Back to Insights
+        </Button>
+      </PageMessage>
+    );
+  }
+
+  const failed = countries.error ?? jobTitles.error;
+  const isLoaded = countries.data !== undefined && jobTitles.data !== undefined;
+  // A supported country nobody works in is simply absent from the country figures.
+  const stats = countries.data?.find((candidate) => candidate.code === country.code);
+
+  return (
+    <Stack gap="lg">
+      <Box component="nav" aria-label="Breadcrumb">
+        <Breadcrumbs>
+          <Anchor component={Link} to="/insights">
+            Insights
+          </Anchor>
+          <Text>{country.name}</Text>
+        </Breadcrumbs>
+      </Box>
+
+      <Group justify="space-between" align="flex-end">
+        <Stack gap={4}>
+          <Title order={1} size="h2">
+            {country.name}
+          </Title>
+          {isLoaded && !failed && (
+            <Text c="dimmed">
+              {`${pluralise(stats?.headcount ?? 0, 'employee', 'employees')} · all amounts in ${country.currency}`}
+            </Text>
+          )}
+        </Stack>
+        {isLoaded && !failed && stats && <CountrySummary stats={stats} />}
+      </Group>
+
+      {failed ? (
+        <PageMessage
+          icon={<IconAlertTriangle size={28} aria-hidden />}
+          color="red"
+          title="Could not load insights"
+        >
+          <Text c="dimmed">{failed.message}</Text>
+          <Button
+            variant="light"
+            onClick={() => {
+              void countries.refetch();
+              void jobTitles.refetch();
+            }}
+          >
+            Retry
+          </Button>
+        </PageMessage>
+      ) : jobTitles.data === undefined || countries.data === undefined ? (
+        <LoadingSkeleton />
+      ) : stats === undefined ? (
+        <PageMessage
+          icon={<IconUsersGroup size={28} aria-hidden />}
+          color="gray"
+          title={`No employees in ${country.name} yet.`}
+        >
+          <Text c="dimmed">Pay figures appear here once someone is added in this country.</Text>
+        </PageMessage>
+      ) : (
+        <>
+          <PayByJobTitle data={jobTitles.data} />
+          <Outliers data={jobTitles.data} />
+        </>
+      )}
+    </Stack>
+  );
+}

@@ -2,9 +2,10 @@ import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { EmployeeDetailPage } from './employees/EmployeeDetailPage';
 import { EmployeesPage } from './employees/EmployeesPage';
+import { CountryInsightsPage } from './insights/CountryInsightsPage';
+import { InsightsPage } from './insights/InsightsPage';
 import { AppLayout } from './layout/AppLayout';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
 
 export function AppRoutes(): ReactElement {
   return (
@@ -13,11 +14,8 @@ export function AppRoutes(): ReactElement {
         <Route index element={<Navigate to="/employees" replace />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
-        <Route path="insights" element={<PlaceholderPage title="Insights" />} />
-        <Route
-          path="insights/:countryCode"
-          element={<PlaceholderPage title="Country insights" />}
-        />
+        <Route path="insights" element={<InsightsPage />} />
+        <Route path="insights/:countryCode" element={<CountryInsightsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

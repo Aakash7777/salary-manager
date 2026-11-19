@@ -48,6 +48,53 @@ export interface Meta {
   jobTitles: string[];
 }
 
+export interface InsightsSummary {
+  headcount: number;
+  countryCount: number;
+  departmentCount: number;
+  jobTitleCount: number;
+  /** Indicative: converted with the fixed FX table named by fxTableVersion. */
+  payrollUsdMinor: number;
+  fxTableVersion: string;
+}
+
+/** Headcount and salary statistics, all in one local currency. */
+export interface PayStats {
+  headcount: number;
+  minMinor: number;
+  medianMinor: number;
+  avgMinor: number;
+  maxMinor: number;
+}
+
+export interface CountryRef {
+  code: string;
+  name: string;
+  currency: string;
+}
+
+export type CountryPay = CountryRef & PayStats;
+export type JobTitlePay = { jobTitle: string } & PayStats;
+
+export interface PayOutlier {
+  employeeId: number;
+  fullName: string;
+  jobTitle: string;
+  salaryMinor: number;
+  roleMedianMinor: number;
+  /** Signed: positive above the role median, negative below. */
+  differencePct: number;
+  direction: 'above' | 'below';
+}
+
+export interface CountryJobTitles {
+  country: CountryRef;
+  /** Highest median first. */
+  jobTitles: JobTitlePay[];
+  /** Largest gap from the role median first. */
+  outliers: PayOutlier[];
+}
+
 export interface ApiFieldIssue {
   path: string;
   message: string;
@@ -133,4 +180,13 @@ export const api = {
     request<undefined>(`/api/employees/${id}`, { method: 'DELETE' }),
 
   getMeta: (signal?: AbortSignal): Promise<Meta> => request<Meta>('/api/meta', { signal }),
+
+  getInsightsSummary: (signal?: AbortSignal): Promise<InsightsSummary> =>
+    request<InsightsSummary>('/api/insights/summary', { signal }),
+
+  getInsightsCountries: (signal?: AbortSignal): Promise<CountryPay[]> =>
+    request<CountryPay[]>('/api/insights/countries', { signal }),
+
+  getCountryJobTitles: (countryCode: string, signal?: AbortSignal): Promise<CountryJobTitles> =>
+    request<CountryJobTitles>(`/api/insights/countries/${countryCode}/job-titles`, { signal }),
 };

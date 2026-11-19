@@ -3,19 +3,18 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Paper,
   SimpleGrid,
   Skeleton,
   Stack,
   Text,
-  ThemeIcon,
   VisuallyHidden,
 } from '@mantine/core';
 import { IconAlertTriangle, IconUserOff } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { type ReactElement, type ReactNode, useState } from 'react';
+import { type ReactElement, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { ApiError, api } from '../api/client';
+import { PageMessage } from '../components/PageMessage';
 import { ChangeSalaryModal } from './ChangeSalaryModal';
 import { EditDetailsDrawer } from './EditDetailsDrawer';
 import { CurrentSalaryCard, DetailsCard, SalaryHistoryCard, SummaryCard } from './EmployeeCards';
@@ -24,32 +23,6 @@ import { RemoveEmployeeModal } from './RemoveEmployeeModal';
 const META_STALE_MS = 5 * 60 * 1000;
 
 type OpenDialog = 'edit' | 'changeSalary' | 'remove' | null;
-
-function PageMessage({
-  icon,
-  color,
-  title,
-  children,
-}: {
-  icon: ReactNode;
-  color: string;
-  title: string;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <Paper withBorder>
-      <Stack align="center" gap="sm" py={64}>
-        <ThemeIcon variant="light" color={color} size={56} radius="xl">
-          {icon}
-        </ThemeIcon>
-        <Text fw={600} size="lg">
-          {title}
-        </Text>
-        {children}
-      </Stack>
-    </Paper>
-  );
-}
 
 function NotFound(): ReactElement {
   return (
