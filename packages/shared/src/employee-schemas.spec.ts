@@ -274,14 +274,22 @@ describe('updateEmployeeDetailsInputSchema', () => {
   });
 
   it('rejects a new salary when the country is not changing', () => {
-    const issues = issuesOf(schema, { newSalaryMajor: 3_500_000, reason: 'Annual raise' });
+    const issues = issuesOf(schema, { newSalaryMajor: 3_500_000 });
 
     expect(issues).toEqual([
       'newSalaryMajor: Salary can only be changed here when the country changes. Use "Change salary" instead',
     ]);
   });
 
-  it('treats the current country as no change, so a new salary is still rejected', () => {
+  it('rejects a reason when the country is not changing', () => {
+    const issues = issuesOf(schema, { reason: 'Annual raise' });
+
+    expect(issues).toEqual([
+      'reason: A reason can only be given here when the country changes. Use "Change salary" instead',
+    ]);
+  });
+
+  it('treats the current country as no change, so a new salary and a reason are both rejected', () => {
     const issues = issuesOf(schema, {
       countryCode: 'IN',
       newSalaryMajor: 3_500_000,
@@ -290,6 +298,7 @@ describe('updateEmployeeDetailsInputSchema', () => {
 
     expect(issues).toEqual([
       'newSalaryMajor: Salary can only be changed here when the country changes. Use "Change salary" instead',
+      'reason: A reason can only be given here when the country changes. Use "Change salary" instead',
     ]);
   });
 
