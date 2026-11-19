@@ -11,13 +11,16 @@ import {
 import { Clock } from '../clock/clock.js';
 import type { EmployeeRow, SalaryChangeRow } from '../db/schema.js';
 import { changedFields, isCountryChange } from '../domain/employee-details.js';
+import { type RoleComparison, compareWithRole } from '../domain/role-comparison.js';
 import { salaryChangeIssue } from '../domain/salary-change.js';
 import { EmployeesRepository } from './employees.repository.js';
 import { EmployeeNotFoundError, InvalidInputError } from './errors.js';
 
 const STARTING_SALARY_REASON = 'Starting salary';
 
-export type EmployeeWithSalaryHistory = EmployeeRow & { salaryHistory: SalaryChangeRow[] };
+/** An employee with their salary history and how they compare with their role in their country. */
+export type EmployeeWithSalaryHistory = EmployeeRow &
+  RoleComparison & { salaryHistory: SalaryChangeRow[] };
 
 export interface EmployeeListPage {
   items: EmployeeRow[];
@@ -98,7 +101,15 @@ export class EmployeesService {
 
   getById(id: number): EmployeeWithSalaryHistory {
     const employee = this.requireEmployee(id);
-    return { ...employee, salaryHistory: this.repository.findSalaryHistory(id) };
+    const roleSalaries = this.repository.findSalariesForRole(
+      employee.countryCode,
+      employee.jobTitle,
+    );
+    return {
+      ...employee,
+      salaryHistory: this.repository.findSalaryHistory(id),
+      ...compareWithRole(employee.salaryMinor, roleSalaries),
+    };
   }
 
   changeSalary(id: number, input: unknown): EmployeeRow {

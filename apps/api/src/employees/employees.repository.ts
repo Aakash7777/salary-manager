@@ -120,6 +120,16 @@ export class EmployeesRepository {
     return { items, total: counted?.total ?? 0 };
   }
 
+  /** Salaries of everyone with this job title in this country. */
+  findSalariesForRole(countryCode: string, jobTitle: string): number[] {
+    return this.db
+      .select({ salaryMinor: employees.salaryMinor })
+      .from(employees)
+      .where(and(eq(employees.countryCode, countryCode), eq(employees.jobTitle, jobTitle)))
+      .all()
+      .map((row) => row.salaryMinor);
+  }
+
   findDistinctDepartments(): string[] {
     return this.db
       .selectDistinct({ department: employees.department })

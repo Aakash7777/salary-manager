@@ -1,3 +1,4 @@
+import { percentDifference } from './role-comparison.js';
 import { summarize } from './stats.js';
 
 export interface SalaryRow {
@@ -42,7 +43,7 @@ export function findOutliers(rows: SalaryRow[], thresholdPct = 25): Outlier[] {
       {
         ...row,
         groupMedianMinor,
-        differencePct: Math.round((difference * 1000) / groupMedianMinor) / 10,
+        differencePct: percentDifference(row.salaryMinor, groupMedianMinor),
         direction: difference > 0 ? 'above' : 'below',
       },
     ];

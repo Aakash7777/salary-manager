@@ -42,7 +42,7 @@ flowchart LR
 |---|---|---|
 | GET | `/api/employees?search&country&department&jobTitle&sort&page&pageSize` | Directory |
 | GET | `/api/employees/export.csv?…same filters` | CSV export |
-| GET | `/api/employees/:id` | Detail + salary history |
+| GET | `/api/employees/:id` | Detail + salary history + the median for the same job title and country |
 | POST | `/api/employees` | Create |
 | PATCH | `/api/employees/:id` | Update details. Never salary, unless the country changes: then `newSalaryMajor` and `reason` are required |
 | POST | `/api/employees/:id/salary-changes` | Change salary (`newSalaryMajor`, `effectiveDate`, `reason`) and record it in history |
@@ -70,5 +70,7 @@ flowchart LR
 
 ## Performance notes (fill in with measured numbers)
 - Seed: 10k inserts in one transaction with a prepared statement. Target < 1 s. **Measured: 219 ms and 256 ms** for 10,000 employees plus 14,976 salary-history rows (two runs of `npm run seed` to a file on a local SSD, Node 26, Windows 11, 2026-11-19).
-- Directory query with filters and pagination: target < 50 ms server time.
-- Insights: GROUP BY for count/min/max/avg, median in memory. Target < 100 ms.
+- Directory query with filters and pagination: target < 50 ms server time. **Measured: 3.0 ms** for the default page and **5.1 ms** with search + country filter + salary sort (median of 15 requests).
+- Insights: one slim query, then count/min/median/avg/max in memory with the pure `summarize` function (no SQL GROUP BY: it was not needed). Target < 100 ms. **Measured: summary 9.7 ms, countries 9.9 ms, India's job titles and outliers 7.1 ms** (median of 15 requests; the slowest single request was 27 ms).
+- Employee detail with role median: **2.0 ms**.
+- All timings are full HTTP round trips with curl to the built API on localhost, against the 10,000-employee seed in a SQLite file (Node 26, Windows 11, 2026-11-19). They are a single-user check, not a load test.
