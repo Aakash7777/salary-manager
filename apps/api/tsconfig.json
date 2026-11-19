@@ -13,5 +13,5 @@
       "@salary-manager/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src", "vitest.config.ts", "drizzle.config.ts"]
 }
