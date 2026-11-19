@@ -304,5 +304,147 @@ handlers.push(
   }),
 );
 
+// ---------------------------------------------------------------------------------------------
+// Insights: three countries, with India drilled down into three roles and two outliers.
+// ---------------------------------------------------------------------------------------------
+
+export const INSIGHTS_SUMMARY = {
+  headcount: 7_950,
+  countryCount: 3,
+  departmentCount: 8,
+  jobTitleCount: 60,
+  // USD 662,797,585.00, shown rounded as "USD 663M".
+  payrollUsdMinor: 66_279_758_500,
+  fxTableVersion: '2026-11',
+};
+
+/** Largest headcount first, as the API returns them. Every amount is in that country's currency. */
+export const INSIGHTS_COUNTRIES = [
+  {
+    code: 'IN',
+    name: 'India',
+    currency: 'INR',
+    headcount: 4_200,
+    minMinor: 57_500_000,
+    medianMinor: 175_000_000,
+    avgMinor: 186_930_000,
+    maxMinor: 517_000_000,
+  },
+  {
+    code: 'US',
+    name: 'United States',
+    currency: 'USD',
+    headcount: 2_650,
+    minMinor: 3_800_000,
+    medianMinor: 11_700_000,
+    avgMinor: 12_485_700,
+    maxMinor: 38_050_000,
+  },
+  {
+    code: 'DE',
+    name: 'Germany',
+    currency: 'EUR',
+    headcount: 1_100,
+    minMinor: 3_000_000,
+    medianMinor: 6_650_000,
+    avgMinor: 7_120_000,
+    maxMinor: 20_300_000,
+  },
+];
+
+/** Highest median first, as the API returns them. */
+export const INDIA_JOB_TITLES = {
+  country: { code: 'IN', name: 'India', currency: 'INR' },
+  jobTitles: [
+    {
+      jobTitle: 'Staff Engineer',
+      headcount: 300,
+      minMinor: 450_000_000,
+      medianMinor: 520_000_000,
+      avgMinor: 531_000_000,
+      maxMinor: 780_000_000,
+    },
+    {
+      jobTitle: 'Senior Engineer',
+      headcount: 1_200,
+      minMinor: 220_000_000,
+      medianMinor: 261_000_000,
+      avgMinor: 265_000_000,
+      maxMinor: 410_000_000,
+    },
+    {
+      jobTitle: 'Engineer',
+      headcount: 2_700,
+      minMinor: 57_500_000,
+      medianMinor: 126_000_000,
+      avgMinor: 129_000_000,
+      maxMinor: 210_000_000,
+    },
+  ],
+  // Largest gap first. (20.0 - 12.6) / 12.6 = +58.7%; (18.0 - 26.1) / 26.1 = -31.0%.
+  outliers: [
+    {
+      employeeId: 41,
+      fullName: 'Neha Kapoor',
+      jobTitle: 'Engineer',
+      salaryMinor: 200_000_000,
+      roleMedianMinor: 126_000_000,
+      differencePct: 58.7,
+      direction: 'above',
+    },
+    {
+      employeeId: 87,
+      fullName: 'Aarav Mehta',
+      jobTitle: 'Senior Engineer',
+      salaryMinor: 180_000_000,
+      roleMedianMinor: 261_000_000,
+      differencePct: -31,
+      direction: 'below',
+    },
+  ],
+};
+
+const GERMANY_JOB_TITLES = {
+  country: { code: 'DE', name: 'Germany', currency: 'EUR' },
+  jobTitles: [
+    {
+      jobTitle: 'Engineer',
+      headcount: 1_100,
+      minMinor: 3_000_000,
+      medianMinor: 6_650_000,
+      avgMinor: 7_120_000,
+      maxMinor: 20_300_000,
+    },
+  ],
+  outliers: [],
+};
+
+/** Singapore is supported but has no employees in this fixture. */
+const SINGAPORE_JOB_TITLES = {
+  country: { code: 'SG', name: 'Singapore', currency: 'SGD' },
+  jobTitles: [],
+  outliers: [],
+};
+
+export const INSIGHTS_SUMMARY_URL = '*/api/insights/summary';
+export const INSIGHTS_COUNTRIES_URL = '*/api/insights/countries';
+export const COUNTRY_JOB_TITLES_URL = '*/api/insights/countries/:code/job-titles';
+
+/** Every country code the app has asked job-title insights for in the current test. */
+export const jobTitleRequests: string[] = [];
+
+handlers.push(
+  http.get(INSIGHTS_SUMMARY_URL, () => HttpResponse.json(INSIGHTS_SUMMARY)),
+  http.get(INSIGHTS_COUNTRIES_URL, () => HttpResponse.json(INSIGHTS_COUNTRIES)),
+  http.get(COUNTRY_JOB_TITLES_URL, ({ params }) => {
+    const code = String(params.code);
+    jobTitleRequests.push(code);
+    if (code === 'IN') return HttpResponse.json(INDIA_JOB_TITLES);
+    if (code === 'DE') return HttpResponse.json(GERMANY_JOB_TITLES);
+    if (code === 'SG') return HttpResponse.json(SINGAPORE_JOB_TITLES);
+    return invalidInput([{ path: 'code', message: 'Select a supported country' }]);
+  }),
+);
+
 // Created last, once every handler above exists.
 export const server = setupServer(...handlers);

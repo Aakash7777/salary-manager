@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { notifications } from '@mantine/notifications';
 import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
-import { apiWrites, employeeRequests, server } from './test/server';
+import { apiWrites, employeeRequests, jobTitleRequests, server } from './test/server';
 
 // A request the tests did not plan for is a bug in the test or the app, so it fails loudly.
 beforeAll(() => {
@@ -14,6 +14,7 @@ afterEach(() => {
   server.resetHandlers();
   employeeRequests.length = 0;
   apiWrites.length = 0;
+  jobTitleRequests.length = 0;
   notifications.clean();
   vi.useRealTimers();
 });
