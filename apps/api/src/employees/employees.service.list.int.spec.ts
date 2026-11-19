@@ -7,7 +7,7 @@ import { InvalidInputError } from './errors.js';
 
 const NOW = '2026-11-19T10:30:00.000Z';
 
-// 30 fixed employees, created in this order, so ids run 1 to 30 from top to bottom.
+// 31 fixed employees, created in this order, so ids run 1 to 31 from top to bottom.
 // [fullName, email local part, jobTitle, department, countryCode, salaryMajor, hireDate]
 const SEED: [string, string, string, string, string, number, string][] = [
   ['Aarav Mehta', 'aarav.mehta', 'Engineer', 'Engineering', 'IN', 1_800_000, '2021-06-01'],
@@ -43,6 +43,8 @@ const SEED: [string, string, string, string, string, number, string][] = [
   ['Isabel Schulz', 'isabel.schulz', 'HR Partner', 'People', 'DE', 66_000, '2021-09-06'],
   // The only row with a "%" in the name and the only one with a "_" in the email.
   ['Zara Ahmed (50%)', 'zara_ahmed', 'HR Partner', 'People', 'SG', 40_000, '2024-06-03'],
+  // The only name that starts with a lowercase letter: the case-insensitive sort check.
+  ['dmitri Volkov', 'dmitri.volkov', 'Analyst', 'Finance', 'SG', 75_000, '2021-04-12'],
 ];
 
 const ALL_NAMES_A_TO_Z = [
@@ -52,6 +54,7 @@ const ALL_NAMES_A_TO_Z = [
   "Brian O'Neil",
   'Carla Gomez',
   'David Miller',
+  'dmitri Volkov',
   'Emily Davis',
   'Emma Clarke',
   'George Brown',
@@ -119,10 +122,10 @@ function thrownBy(action: () => unknown): unknown {
 }
 
 describe('EmployeesService.list defaults', () => {
-  it('returns the first 25 employees by name A to Z, with the total of all 30', () => {
+  it('returns the first 25 employees by name A to Z, with the total of all 31', () => {
     const result = service.list({});
 
-    expect(result).toMatchObject({ total: 30, page: 1, pageSize: 25 });
+    expect(result).toMatchObject({ total: 31, page: 1, pageSize: 25 });
     expect(result.items.map((employee) => employee.fullName)).toEqual(
       ALL_NAMES_A_TO_Z.slice(0, 25),
     );
@@ -153,7 +156,7 @@ describe('EmployeesService.list defaults', () => {
 
   it('ignores blank filters, as the shared schema treats them as not provided', () => {
     expect(service.list({ search: '  ', country: '', department: '', jobTitle: '' }).total).toBe(
-      30,
+      31,
     );
   });
 });
@@ -182,7 +185,7 @@ describe('EmployeesService.list search', () => {
   });
 
   it.each([
-    { search: '%', why: 'as a wildcard it would match all 30' },
+    { search: '%', why: 'as a wildcard it would match all 31' },
     { search: '50%', why: 'the percent sign is part of the text' },
     { search: '_', why: 'as a wildcard it would match every non-empty value' },
     { search: 'a_a', why: 'as a wildcard it would also match "ara" in other names' },
@@ -260,6 +263,20 @@ describe('EmployeesService.list filters', () => {
 });
 
 describe('EmployeesService.list sorting', () => {
+  it('sorts names without regard to letter case, so "dmitri Volkov" sits between "David Miller" and "Emily Davis"', () => {
+    expect(namesOf({ sort: 'name', order: 'asc', pageSize: 8 }).slice(5)).toEqual([
+      'David Miller',
+      'dmitri Volkov',
+      'Emily Davis',
+    ]);
+  });
+
+  it('sorts names Z to A without regard to letter case', () => {
+    expect(namesOf({ sort: 'name', order: 'desc', pageSize: 100 })).toEqual(
+      [...ALL_NAMES_A_TO_Z].reverse(),
+    );
+  });
+
   it('sorts by name Z to A', () => {
     expect(namesOf({ sort: 'name', order: 'desc', pageSize: 3 })).toEqual([
       'Zara Ahmed (50%)',
@@ -325,23 +342,35 @@ describe('EmployeesService.list sorting', () => {
 });
 
 describe('EmployeesService.list pagination', () => {
-  it('returns the remaining 5 on the second page of 25', () => {
+  it('returns the remaining 6 on the second page of 25', () => {
     const result = service.list({ page: 2 });
 
-    expect(result).toMatchObject({ total: 30, page: 2, pageSize: 25 });
+    expect(result).toMatchObject({ total: 31, page: 2, pageSize: 25 });
     expect(result.items.map((employee) => employee.fullName)).toEqual(ALL_NAMES_A_TO_Z.slice(25));
   });
 
-  it('returns a full last page when the total divides evenly', () => {
-    expect(namesOf({ page: 3, pageSize: 10 })).toEqual(ALL_NAMES_A_TO_Z.slice(20, 30));
+  it('returns a full last page when the total divides evenly, and nothing after it', () => {
+    // India has 9 employees: exactly three pages of 3.
+    const indiaInThrees = { country: 'IN', pageSize: 3 };
+
+    expect(namesOf({ ...indiaInThrees, page: 3 })).toEqual([
+      'Rohan Iyer',
+      'Sanjay Gupta',
+      'Vikram Singh',
+    ]);
+    expect(namesOf({ ...indiaInThrees, page: 4 })).toEqual([]);
   });
 
   it('returns a partial last page when it does not', () => {
-    expect(namesOf({ page: 5, pageSize: 7 })).toEqual(['Wei Ling Tan', 'Zara Ahmed (50%)']);
+    expect(namesOf({ page: 5, pageSize: 7 })).toEqual([
+      'Vikram Singh',
+      'Wei Ling Tan',
+      'Zara Ahmed (50%)',
+    ]);
   });
 
   it('returns no items, but still the total, for a page beyond the end', () => {
-    expect(service.list({ page: 99 })).toEqual({ items: [], total: 30, page: 99, pageSize: 25 });
+    expect(service.list({ page: 99 })).toEqual({ items: [], total: 31, page: 99, pageSize: 25 });
   });
 
   it('covers every employee exactly once across consecutive pages', () => {
