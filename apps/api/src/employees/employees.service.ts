@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { createEmployeeInputSchema, currencyFor, toMinor } from '@salary-manager/shared';
+import {
+  createEmployeeInputSchema,
+  currencyFor,
+  listEmployeesQuerySchema,
+  toMinor,
+} from '@salary-manager/shared';
 import { Clock } from '../clock/clock.js';
 import type { EmployeeRow, SalaryChangeRow } from '../db/schema.js';
 import { EmployeesRepository } from './employees.repository.js';
@@ -8,6 +13,19 @@ import { EmployeeNotFoundError, InvalidInputError } from './errors.js';
 const STARTING_SALARY_REASON = 'Starting salary';
 
 export type EmployeeWithSalaryHistory = EmployeeRow & { salaryHistory: SalaryChangeRow[] };
+
+export interface EmployeeListPage {
+  items: EmployeeRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+function invalidInput(issues: { path: PropertyKey[]; message: string }[]): InvalidInputError {
+  return new InvalidInputError(
+    issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+  );
+}
 
 @Injectable()
 export class EmployeesService {
@@ -19,12 +37,7 @@ export class EmployeesService {
   create(input: unknown): EmployeeRow {
     const parsed = createEmployeeInputSchema(this.clock.today()).safeParse(input);
     if (!parsed.success) {
-      throw new InvalidInputError(
-        parsed.error.issues.map((issue) => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-        })),
-      );
+      throw invalidInput(parsed.error.issues);
     }
 
     const { salaryMajor, ...details } = parsed.data;
@@ -52,6 +65,15 @@ export class EmployeesService {
       });
       return employee;
     });
+  }
+
+  list(query: unknown): EmployeeListPage {
+    const parsed = listEmployeesQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw invalidInput(parsed.error.issues);
+    }
+    const { items, total } = this.repository.findPage(parsed.data);
+    return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
   }
 
   getById(id: number): EmployeeWithSalaryHistory {

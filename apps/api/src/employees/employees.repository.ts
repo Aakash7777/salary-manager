@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
+import type { ListEmployeesQuery } from '@salary-manager/shared';
+import { and, asc, count, desc, eq, or, sql } from 'drizzle-orm';
 import { DATABASE } from '../db/database.module.js';
 import type { DatabaseExecutor } from '../db/database.js';
 import {
@@ -20,6 +21,11 @@ function isDuplicateEmail(error: unknown): boolean {
     }
   }
   return false;
+}
+
+// Makes %, _ and \ in user text match themselves in a LIKE pattern that uses ESCAPE '\'.
+function escapeLikeWildcards(text: string): string {
+  return text.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 @Injectable()
@@ -47,6 +53,44 @@ export class EmployeesRepository {
 
   findById(id: number): EmployeeRow | undefined {
     return this.db.select().from(employees).where(eq(employees.id, id)).get();
+  }
+
+  findPage(query: ListEmployeesQuery): { items: EmployeeRow[]; total: number } {
+    const searchPattern = query.search ? `%${escapeLikeWildcards(query.search)}%` : undefined;
+    const matching = and(
+      searchPattern
+        ? or(
+            sql`${employees.fullName} LIKE ${searchPattern} ESCAPE '\\'`,
+            sql`${employees.email} LIKE ${searchPattern} ESCAPE '\\'`,
+          )
+        : undefined,
+      query.country ? eq(employees.countryCode, query.country) : undefined,
+      query.department ? eq(employees.department, query.department) : undefined,
+      query.jobTitle ? eq(employees.jobTitle, query.jobTitle) : undefined,
+    );
+
+    // Sorting by salary compares raw minor-unit amounts, so across countries it mixes
+    // currencies (INR 1,800,000 sorts above USD 165,000). That is deliberate and kept
+    // simple; the UI explains it next to the salary column.
+    const sortColumn = {
+      name: sql`${employees.fullName} COLLATE NOCASE`,
+      salary: employees.salaryMinor,
+      hireDate: employees.hireDate,
+    }[query.sort];
+    const direction = query.order === 'desc' ? desc : asc;
+
+    const items = this.db
+      .select()
+      .from(employees)
+      .where(matching)
+      // The id tiebreaker keeps rows with equal sort values in one fixed order across pages.
+      .orderBy(direction(sortColumn), asc(employees.id))
+      .limit(query.pageSize)
+      .offset((query.page - 1) * query.pageSize)
+      .all();
+    const counted = this.db.select({ total: count() }).from(employees).where(matching).get();
+
+    return { items, total: counted?.total ?? 0 };
   }
 
   findSalaryHistory(employeeId: number): SalaryChangeRow[] {
