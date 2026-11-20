@@ -16,4 +16,5 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      # Runs every test once and prints each package's coverage table in the job log.
+      - run: npm run coverage

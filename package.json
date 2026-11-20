@@ -16,6 +16,7 @@
     "docker:run": "docker run --rm -p 3000:3000 -v salary-manager-data:/data salary-manager",
     "seed": "npm run build -w @salary-manager/shared && npm run seed -w @salary-manager/api --",
     "test": "npm run test --workspaces --if-present",
+    "coverage": "npm run coverage --workspaces --if-present",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "npm run typecheck --workspaces --if-present"
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.1",
     "concurrently": "^10.0.7",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",

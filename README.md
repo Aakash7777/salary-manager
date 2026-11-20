@@ -34,6 +34,25 @@ npm run typecheck
 
 The API also has `npm run test:unit -w @salary-manager/api` and `npm run test:int -w @salary-manager/api`.
 
+### Coverage
+
+```bash
+npm run coverage  # the same tests, plus a per-file coverage table for each package
+```
+
+CI runs this instead of `npm test`, so the tables are in every run's log. No threshold is enforced: the numbers are reported, not chased.
+
+| Package | Tests | Statements | Branches | Functions | Lines |
+|---|---|---|---|---|---|
+| `apps/api` | 405 | 92.89% | 80.45% | 98.06% | 92.53% |
+| `apps/web` | 230 | 96.55% | 92.39% | 97.40% | 96.66% |
+| `packages/shared` | 223 | 99.12% | 98.30% | 100% | 99.09% |
+
+Measured on 2026-11-20 with V8 coverage. Every source file counts, including files no test loads; only test files and test helpers are excluded. What is not covered:
+
+- **The entry points, at 0%:** `apps/api/src/main.ts`, `apps/api/src/seed/seed-cli.ts` and `apps/web/src/main.tsx`. They wire things together and were checked by running the app and the Docker image, not by tests.
+- **Branches in the API (80%):** mostly defensive fallbacks that the tests cannot reach with valid data, such as the `?? 0` defaults for an empty group in `insights.service.ts` and the "should never happen" guards in the repository and `employees.service.ts`.
+
 ## Environment variables
 
 | Variable | Default | Purpose |
