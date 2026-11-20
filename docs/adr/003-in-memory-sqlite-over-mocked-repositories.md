@@ -22,7 +22,7 @@ Most of what can go wrong in this API lives in the database interaction: a salar
 
 - The tests prove behaviour that only real SQL can show: rollback, the unique constraint, cascade delete, `LIKE` escaping, case-insensitive sort, pagination tiebreaks.
 - Refactoring the repository or the queries does not break tests, because no test knows which repository methods exist.
-- It is still fast: the whole API suite (405 tests, unit and integration) runs in about 12 seconds, and it is deterministic because every test starts from an empty database and a fixed clock.
+- It is still fast: the whole API suite (468 tests, unit and integration) runs in about 4 seconds, and it is deterministic because every test starts from an empty database and a fixed clock.
 
 **What it costs**
 

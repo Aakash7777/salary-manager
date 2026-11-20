@@ -43,7 +43,7 @@ Left out deliberately: it needs a pending state, a job that applies changes on t
 These two rules live only in the API (`domain/salary-change.ts`), because they need the stored employee. The date picker blocks days before the hire date, but a typed date or an unchanged salary is only caught by the server. The schema factory already takes context (`today`), so it can take the hire date and current salary too, and the form would report both before sending.
 
 **3. The search + salary-sort query is the slowest directory request.**
-After the name index fix it is the slowest thing in the load test: 293 requests per second with a p95 of 38 ms at 10 connections, against 2,713 for the default page. Its query plan has not been examined. A `LIKE '%text%'` cannot use an index, so the likely answer is a full-text index (SQLite FTS5), which would also be the place to fix the ASCII-only search above.
+After the name index fix it is the slowest thing in the load test: 290 requests per second with a p95 of 38 ms at 10 connections, against 2,638 for the default page. Its query plan has not been examined. A `LIKE '%text%'` cannot use an index, so the likely answer is a full-text index (SQLite FTS5), which would also be the place to fix the ASCII-only search above.
 
 **4. The web bundle is one 830 kB chunk with no code splitting.**
 The whole app ships as one JavaScript file (830 kB, 250 kB gzipped) plus 286 kB of CSS, and Vite warns about it on every build. Splitting by route would keep Insights and the simulator out of the first load of the directory. Fine on an office network; worth doing before anyone uses it on a slow one.

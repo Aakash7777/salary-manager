@@ -18,7 +18,7 @@ The requirements promise "no silent data errors: money is never a float, and no 
 **Amounts in different currencies are never added.**
 
 - Per-country and per-job-title statistics, the role median on the employee page, and the outlier rule all work inside one country, so inside one currency.
-- The only cross-country figure is the org-wide payroll. `InsightsService.getSummary` totals each country in its own currency, converts each total with `toUsdMinor`, and only then adds the USD amounts. The response carries `fxTableVersion`, and the UI labels the figure indicative.
+- There are two cross-country figures: the org-wide payroll (`InsightsService.getSummary`) and the raise simulator's total increase (`simulateRaise`). Both are made the same way: each currency is totalled on its own, each total is converted with `toUsdMinor`, and only then are the USD amounts added. Both responses carry `fxTableVersion`, and the UI labels both figures indicative.
 - FX rates are fixed, versioned config in `packages/shared` (`FX_TABLE_VERSION`). `toUsdMinor` scales the rate to an integer (6 decimal places) and does the arithmetic in `BigInt`.
 - A country change stores `old_currency` beside `old_salary_minor`, so a history row is never read in the wrong currency.
 

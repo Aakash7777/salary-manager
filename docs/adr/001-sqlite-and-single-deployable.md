@@ -22,7 +22,7 @@ Store everything in **one SQLite file**, opened through `better-sqlite3` and Dri
 
 - Nothing to provision: `npm run dev` or `docker run` gives a working app with data. No CORS, no second deploy, one URL.
 - Tests run the real schema and real SQL on `:memory:` in milliseconds (see ADR 003).
-- At this size it is fast with no tuning: 3 to 10 ms per request on the 10,000-employee seed (`docs/ARCHITECTURE.md`, performance notes).
+- At this size it is fast with no tuning: 1 to 9 ms per request on the 10,000-employee seed (`docs/ARCHITECTURE.md`, performance notes).
 
 **What it costs**
 
