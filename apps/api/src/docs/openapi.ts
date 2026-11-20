@@ -130,6 +130,10 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         name: 'Insights',
         description: 'Pay statistics. Per-country figures are in local currency.',
       },
+      {
+        name: 'Simulations',
+        description: 'What-if calculations. They read salaries and never change them.',
+      },
       { name: 'System' },
     ],
     paths: {
@@ -285,6 +289,19 @@ export function buildOpenApiDocument(): Record<string, unknown> {
           },
         },
       },
+      '/api/simulations/raise': {
+        post: {
+          tags: ['Simulations'],
+          summary: 'Cost of a raise for a group of employees. Nothing is saved',
+          description: `What giving every matching employee a raise of \`pct\` percent would cost per year. **Read-only**: no salary changes and nothing is stored, which is why it answers 200 and not 201.\n\nThe group is chosen with \`filters\`, which has the shape of the directory's query; its sort and paging are accepted and ignored, so every matching employee is counted. Each person's increase is rounded half up to the minor unit before the increases are added. Rows are per currency and are never added to each other; \`increaseUsdMinor\` is **indicative**: each currency's increase is converted with the fixed FX table (currently \`${FX_TABLE_VERSION}\`) and only then added.`,
+          requestBody: body('SimulateRaiseInput'),
+          responses: {
+            200: json('The cost of the raise.', ref('RaiseSimulation')),
+            400: invalid,
+            500: serverError,
+          },
+        },
+      },
       '/health': {
         get: {
           tags: ['System'],
@@ -302,6 +319,26 @@ export function buildOpenApiDocument(): Record<string, unknown> {
       schemas: {
         ...requestSchemas,
         Employee: employee,
+        RaiseSimulation: object({
+          headcount: { type: 'integer', description: 'How many employees the filters matched.' },
+          byCurrency: {
+            type: 'array',
+            description: 'One row per currency, in order of currency code.',
+            items: object({
+              currency: COUNTRY_REF.currency,
+              headcount: integer,
+              currentTotalMinor: minorUnits('What these employees are paid per year now.'),
+              increaseMinor: minorUnits(
+                'The sum of each employee’s increase, each rounded half up to the minor unit.',
+              ),
+              newTotalMinor: minorUnits('`currentTotalMinor` plus `increaseMinor`.'),
+            }),
+          },
+          increaseUsdMinor: minorUnits(
+            'Indicative total increase in USD cents: each currency’s increase converted at the fixed FX table, then added.',
+          ),
+          fxTableVersion: text,
+        }),
         SalaryChange: object({
           id: integer,
           employeeId: integer,

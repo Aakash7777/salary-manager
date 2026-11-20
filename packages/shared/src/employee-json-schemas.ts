@@ -5,6 +5,7 @@ import {
   listEmployeesQuerySchema,
   updateEmployeeDetailsInputSchema,
 } from './employee-schemas.js';
+import { simulateRaiseInputSchema } from './simulation-schemas.js';
 
 /** The parts of a JSON Schema this project reads. Anything else passes through untouched. */
 export interface JsonSchema {
@@ -53,7 +54,11 @@ function jsonSchemaOf(schema: z.ZodType): JsonSchema {
  * so API documentation cannot drift from the real rules.
  */
 export function employeeJsonSchemas(): Record<
-  'CreateEmployeeInput' | 'UpdateEmployeeDetailsInput' | 'ChangeSalaryInput' | 'ListEmployeesQuery',
+  | 'CreateEmployeeInput'
+  | 'UpdateEmployeeDetailsInput'
+  | 'ChangeSalaryInput'
+  | 'ListEmployeesQuery'
+  | 'SimulateRaiseInput',
   JsonSchema
 > {
   return {
@@ -63,5 +68,6 @@ export function employeeJsonSchemas(): Record<
     ),
     ChangeSalaryInput: jsonSchemaOf(changeSalaryInputSchema(ANY_DAY)),
     ListEmployeesQuery: jsonSchemaOf(listEmployeesQuerySchema),
+    SimulateRaiseInput: jsonSchemaOf(simulateRaiseInputSchema),
   };
 }

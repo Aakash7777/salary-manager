@@ -6,6 +6,7 @@ import { CountryInsightsPage } from './insights/CountryInsightsPage';
 import { InsightsPage } from './insights/InsightsPage';
 import { AppLayout } from './layout/AppLayout';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { SimulatorPage } from './simulator/SimulatorPage';
 
 export function AppRoutes(): ReactElement {
   return (
@@ -16,6 +17,7 @@ export function AppRoutes(): ReactElement {
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
         <Route path="insights" element={<InsightsPage />} />
         <Route path="insights/:countryCode" element={<CountryInsightsPage />} />
+        <Route path="simulator" element={<SimulatorPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

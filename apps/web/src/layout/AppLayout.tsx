@@ -1,12 +1,13 @@
 import { AppShell, Group, NavLink, Text } from '@mantine/core';
 import { APP_NAME } from '@salary-manager/shared';
-import { IconChartBar, IconUsers } from '@tabler/icons-react';
+import { IconCalculator, IconChartBar, IconUsers } from '@tabler/icons-react';
 import type { ReactElement } from 'react';
 import { Outlet, NavLink as RouterNavLink, useLocation } from 'react-router';
 
 const SECTIONS = [
   { path: '/employees', label: 'Employees', Icon: IconUsers },
   { path: '/insights', label: 'Insights', Icon: IconChartBar },
+  { path: '/simulator', label: 'Raise simulator', Icon: IconCalculator },
 ];
 
 export function AppLayout(): ReactElement {

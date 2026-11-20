@@ -132,6 +132,15 @@ export class EmployeesRepository {
     );
   }
 
+  /** The pay of every employee the query's search and filters match; its sort and paging are ignored. */
+  findPayMatching(query: ListEmployeesQuery): { currency: string; salaryMinor: number }[] {
+    return this.db
+      .select({ currency: employees.currency, salaryMinor: employees.salaryMinor })
+      .from(employees)
+      .where(this.matching(query))
+      .all();
+  }
+
   /** Salaries of everyone with this job title in this country. */
   findSalariesForRole(countryCode: string, jobTitle: string): number[] {
     return this.db

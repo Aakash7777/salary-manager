@@ -164,5 +164,6 @@ Full, interactive documentation is served by the app at **`/api/docs`** (http://
 | GET | `/api/insights/summary` | Headcount and indicative USD payroll |
 | GET | `/api/insights/countries` | Pay statistics per country |
 | GET | `/api/insights/countries/:code/job-titles` | Pay per job title, and outliers |
+| POST | `/api/simulations/raise` | Raise simulator: what a raise of 0 to 50% would cost for a filtered group, per currency, plus an indicative USD total. Read-only, nothing is saved |
 | GET | `/health` | Health check |
 | GET | `/api/docs` | Interactive API documentation (Swagger UI); the OpenAPI 3.1 document is at `/api/docs/openapi.json` |

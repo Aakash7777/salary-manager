@@ -7,10 +7,16 @@ import type { DirectoryQuery } from './directory-query';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** The search and the three filters: what these controls show and change. */
+export type DirectoryFilterValues = Pick<
+  DirectoryQuery,
+  'search' | 'country' | 'department' | 'jobTitle'
+>;
+
 interface DirectoryFiltersProps {
-  query: DirectoryQuery;
+  query: DirectoryFilterValues;
   meta: Meta | undefined;
-  onChange: (changes: Partial<DirectoryQuery>) => void;
+  onChange: (changes: Partial<DirectoryFilterValues>) => void;
   onClear: () => void;
 }
 

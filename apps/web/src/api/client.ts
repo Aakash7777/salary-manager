@@ -95,6 +95,31 @@ export interface CountryJobTitles {
   outliers: PayOutlier[];
 }
 
+/** What the raise simulator is asked: a group, chosen like the directory's list, and a percentage. */
+export interface RaiseSimulationRequest {
+  filters: Record<string, string>;
+  pct: number;
+}
+
+/** What a raise costs for the people paid in one currency. Every amount is in that currency. */
+export interface CurrencyRaise {
+  currency: string;
+  headcount: number;
+  currentTotalMinor: number;
+  increaseMinor: number;
+  newTotalMinor: number;
+}
+
+export interface RaiseSimulation {
+  /** How many employees the filters matched. */
+  headcount: number;
+  /** In order of currency code. */
+  byCurrency: CurrencyRaise[];
+  /** Indicative: converted with the fixed FX table named by fxTableVersion. */
+  increaseUsdMinor: number;
+  fxTableVersion: string;
+}
+
 export interface ApiFieldIssue {
   path: string;
   message: string;
@@ -186,6 +211,10 @@ export const api = {
 
   getInsightsCountries: (signal?: AbortSignal): Promise<CountryPay[]> =>
     request<CountryPay[]>('/api/insights/countries', { signal }),
+
+  /** A POST because the question has a body. It is read-only: nothing is saved. */
+  simulateRaise: (body: RaiseSimulationRequest, signal?: AbortSignal): Promise<RaiseSimulation> =>
+    request<RaiseSimulation>('/api/simulations/raise', { method: 'POST', body, signal }),
 
   getCountryJobTitles: (countryCode: string, signal?: AbortSignal): Promise<CountryJobTitles> =>
     request<CountryJobTitles>(`/api/insights/countries/${countryCode}/job-titles`, { signal }),

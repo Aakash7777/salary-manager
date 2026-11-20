@@ -51,7 +51,7 @@ flowchart LR
 | GET | `/api/insights/countries` | Stats per country |
 | GET | `/api/insights/countries/:code/job-titles` | Stats per role, with outliers |
 | GET | `/api/meta` | Countries, departments and titles for the filters |
-| POST | `/api/simulations/raise` | Raise simulator: cost per country in local currency + indicative USD total (read-only, nothing saved) |
+| POST | `/api/simulations/raise` | Raise simulator. Body `{ filters?, pct }`: `filters` has the directory query's shape (its sort and paging are ignored), `pct` is 0 to 50 with at most one decimal. Answers 200 with the matched headcount, one row per currency (headcount, current total, increase, new total, in that currency) and an indicative USD total of the increase. Read-only: nothing is saved |
 | GET | `/api/docs` | API docs (Swagger) |
 | GET | `/health` | Health check |
 

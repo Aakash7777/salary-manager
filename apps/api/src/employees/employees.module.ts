@@ -10,6 +10,6 @@ import { MetaController } from './meta.controller.js';
   imports: [DatabaseModule, ClockModule],
   controllers: [EmployeesController, MetaController],
   providers: [EmployeesRepository, EmployeesService],
-  exports: [EmployeesService],
+  exports: [EmployeesService, EmployeesRepository],
 })
 export class EmployeesModule {}

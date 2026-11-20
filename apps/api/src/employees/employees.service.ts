@@ -16,7 +16,7 @@ import { changedFields, isCountryChange } from '../domain/employee-details.js';
 import { type RoleComparison, compareWithRole } from '../domain/role-comparison.js';
 import { salaryChangeIssue } from '../domain/salary-change.js';
 import { EmployeesRepository } from './employees.repository.js';
-import { EmployeeNotFoundError, InvalidInputError } from './errors.js';
+import { EmployeeNotFoundError, InvalidInputError, invalidInputFrom } from './errors.js';
 
 const STARTING_SALARY_REASON = 'Starting salary';
 
@@ -47,12 +47,6 @@ export interface EmployeeMeta {
   jobTitles: string[];
 }
 
-function invalidInput(issues: { path: PropertyKey[]; message: string }[]): InvalidInputError {
-  return new InvalidInputError(
-    issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
-  );
-}
-
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -63,7 +57,7 @@ export class EmployeesService {
   create(input: unknown): EmployeeRow {
     const parsed = createEmployeeInputSchema(this.clock.today()).safeParse(input);
     if (!parsed.success) {
-      throw invalidInput(parsed.error.issues);
+      throw invalidInputFrom(parsed.error.issues);
     }
 
     const { salaryMajor, ...details } = parsed.data;
@@ -96,7 +90,7 @@ export class EmployeesService {
   list(query: unknown): EmployeeListPage {
     const parsed = listEmployeesQuerySchema.safeParse(query);
     if (!parsed.success) {
-      throw invalidInput(parsed.error.issues);
+      throw invalidInputFrom(parsed.error.issues);
     }
     const { items, total } = this.repository.findPage(parsed.data);
     return { items, total, page: parsed.data.page, pageSize: parsed.data.pageSize };
@@ -106,7 +100,7 @@ export class EmployeesService {
     // Validated here, not inside the generator, so a bad filter fails before any output.
     const parsed = listEmployeesQuerySchema.safeParse(query);
     if (!parsed.success) {
-      throw invalidInput(parsed.error.issues);
+      throw invalidInputFrom(parsed.error.issues);
     }
     return {
       filename: `employees-${this.clock.today()}.csv`,
@@ -153,7 +147,7 @@ export class EmployeesService {
     const employee = this.requireEmployee(id);
     const parsed = changeSalaryInputSchema(this.clock.today()).safeParse(input);
     if (!parsed.success) {
-      throw invalidInput(parsed.error.issues);
+      throw invalidInputFrom(parsed.error.issues);
     }
 
     const { newSalaryMajor, effectiveDate, reason } = parsed.data;
@@ -190,7 +184,7 @@ export class EmployeesService {
       currentCountryCode: employee.countryCode,
     }).safeParse(input);
     if (!parsed.success) {
-      throw invalidInput(parsed.error.issues);
+      throw invalidInputFrom(parsed.error.issues);
     }
 
     const { newSalaryMajor, reason, ...details } = parsed.data;
