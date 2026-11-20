@@ -3,7 +3,7 @@
 One web app that replaces the spreadsheets HR uses for about 10,000 employees in five countries. It is for an HR manager who is comfortable with Excel and not technical: it keeps salary data correct, records why every salary changed, and answers "how do we pay people?" on one screen, without an export.
 
 - **Live app:** https://salary-manager-production.up.railway.app
-- **Demo video (3–5 min):** _add the link here_
+- **Demo video (3–5 min):** https://www.loom.com/share/de081b023b2640f7a8e0f3960d01b05d
 - **API docs:** `/api/docs` on the running app
 
 ## Quick start
