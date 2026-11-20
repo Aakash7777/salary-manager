@@ -1,10 +1,10 @@
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { type BoundFunctions, type queries, render, screen } from '@testing-library/react';
+import { type BoundFunctions, act, type queries, render, screen } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
-import type { ReactElement } from 'react';
-import { MemoryRouter, useLocation } from 'react-router';
+import { type ReactElement, useEffect } from 'react';
+import { MemoryRouter, type NavigateFunction, useLocation, useNavigate } from 'react-router';
 import { vi } from 'vitest';
 import { AppRoutes } from '../AppRoutes';
 import { theme } from '../theme';
@@ -12,10 +12,26 @@ import { theme } from '../theme';
 /** Queries limited to one part of the page, as `within(element)` returns them. */
 export type Scoped = BoundFunctions<typeof queries>;
 
-/** Shows the router's current URL, so a test can assert on it like the address bar. */
+let navigateInApp: NavigateFunction | undefined;
+
+/**
+ * Shows the router's current URL, so a test can assert on it like the address bar, and keeps
+ * hold of the router's navigation so a test can press Back.
+ */
 function LocationProbe(): ReactElement {
   const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigateInApp = navigate;
+  }, [navigate]);
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
+}
+
+/** What the browser's Back button does: returns to the previous entry in the history. */
+export async function goBack(): Promise<void> {
+  await act(async () => {
+    await navigateInApp?.(-1);
+  });
 }
 
 /**
