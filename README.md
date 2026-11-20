@@ -1,6 +1,6 @@
 # ACME Salary Manager
 
-One web app for HR to keep salary data correct and answer "how do we pay people?" without exporting to Excel. See [REQUIREMENTS.md](REQUIREMENTS.md) for scope and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions.
+One web app for HR to keep salary data correct and answer "how do we pay people?" without exporting to Excel. See [REQUIREMENTS.md](REQUIREMENTS.md) for scope and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions. The decisions with real trade-offs each have a one-page record in [docs/adr](docs/adr/README.md).
 
 - `apps/api`: NestJS + Drizzle + SQLite (better-sqlite3)
 - `apps/web`: React (Vite) + Mantine + TanStack Query
