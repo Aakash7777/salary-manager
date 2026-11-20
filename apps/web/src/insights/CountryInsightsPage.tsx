@@ -10,6 +10,7 @@ import {
   Skeleton,
   Stack,
   Table,
+  Tabs,
   Text,
   Title,
   VisuallyHidden,
@@ -18,7 +19,7 @@ import { formatMoney, listCountries } from '@salary-manager/shared';
 import { IconAlertTriangle, IconMapOff, IconUsersGroup } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import {
   type CountryJobTitles,
   type CountryPay,
@@ -27,7 +28,7 @@ import {
   api,
 } from '../api/client';
 import { PageMessage } from '../components/PageMessage';
-import { initialsOf } from '../employees/format';
+import { formatCount, initialsOf } from '../employees/format';
 import { NUMERIC_CELL, PAY_STATS_HEADERS, PayStatsCells } from './PayStatsCells';
 import { gapFromMedianLabel, pluralise } from './insights-format';
 
@@ -63,9 +64,6 @@ function PayByJobTitle({ data }: { data: CountryJobTitles }): ReactElement {
 
   return (
     <Paper withBorder>
-      <Text fw={600} p="md">
-        {title}
-      </Text>
       <Table.ScrollContainer minWidth={760}>
         <Table verticalSpacing="sm" aria-label={title}>
           <Table.Thead>
@@ -130,18 +128,10 @@ function Outliers({ data }: { data: CountryJobTitles }): ReactElement {
   const { country, outliers } = data;
 
   return (
-    <Paper component="section" aria-label="Outliers" withBorder>
-      <Stack gap={4} p="md">
-        <Group gap="sm">
-          <Text fw={600}>Outliers</Text>
-          <Badge variant="light" color="gray" aria-label="Number of outliers">
-            {outliers.length}
-          </Badge>
-        </Group>
-        <Text size="sm" c="dimmed">
-          {`Paid more than 25% above or below the median for their job title in ${country.name}.`}
-        </Text>
-      </Stack>
+    <Paper withBorder>
+      <Text size="sm" c="dimmed" p="md">
+        {`Paid more than 25% above or below the median for their job title in ${country.name}.`}
+      </Text>
       {outliers.length === 0 ? (
         <Text p="md" pt={0}>
           {`No outliers in ${country.name}. Everyone is within 25% of the median for their job title.`}
@@ -172,6 +162,57 @@ function Outliers({ data }: { data: CountryJobTitles }): ReactElement {
         </Table.ScrollContainer>
       )}
     </Paper>
+  );
+}
+
+const JOB_TITLES_TAB = 'job-titles';
+const OUTLIERS_TAB = 'outliers';
+const TAB_PARAM = 'tab';
+
+/**
+ * The two tables as tabs, so the outliers are one click away instead of below a long table.
+ * The selected tab lives in the URL: a link can open the outliers, and Back returns to the
+ * previous tab. Both tabs show the one response already loaded.
+ */
+function PayTabs({ data }: { data: CountryJobTitles }): ReactElement {
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Anything other than the outliers tab, including no value, is the default tab.
+  const selected = searchParams.get(TAB_PARAM) === OUTLIERS_TAB ? OUTLIERS_TAB : JOB_TITLES_TAB;
+
+  const select = (tab: string | null): void => {
+    if (tab === null || tab === selected) {
+      return;
+    }
+    // A new history entry (not a replace), which is what lets Back return to the last tab.
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (tab === OUTLIERS_TAB) {
+        next.set(TAB_PARAM, OUTLIERS_TAB);
+      } else {
+        next.delete(TAB_PARAM);
+      }
+      return next;
+    });
+  };
+
+  return (
+    // Only the selected tab's table is rendered: the other can be 38 rows or 1,400.
+    <Tabs value={selected} onChange={select} keepMounted={false}>
+      <Tabs.List aria-label={`Pay in ${data.country.name}`}>
+        <Tabs.Tab value={JOB_TITLES_TAB}>
+          {`Pay by job title (${formatCount(data.jobTitles.length)})`}
+        </Tabs.Tab>
+        <Tabs.Tab
+          value={OUTLIERS_TAB}
+        >{`Outliers (${formatCount(data.outliers.length)})`}</Tabs.Tab>
+      </Tabs.List>
+      <Tabs.Panel value={JOB_TITLES_TAB} pt="md">
+        <PayByJobTitle data={data} />
+      </Tabs.Panel>
+      <Tabs.Panel value={OUTLIERS_TAB} pt="md">
+        <Outliers data={data} />
+      </Tabs.Panel>
+    </Tabs>
   );
 }
 
@@ -273,10 +314,7 @@ export function CountryInsightsPage(): ReactElement {
           <Text c="dimmed">Pay figures appear here once someone is added in this country.</Text>
         </PageMessage>
       ) : (
-        <>
-          <PayByJobTitle data={jobTitles.data} />
-          <Outliers data={jobTitles.data} />
-        </>
+        <PayTabs data={jobTitles.data} />
       )}
     </Stack>
   );
