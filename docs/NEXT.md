@@ -48,8 +48,31 @@ After the name index fix it is the slowest thing in the load test: 290 requests 
 **4. The web bundle is one 830 kB chunk with no code splitting.**
 The whole app ships as one JavaScript file (830 kB, 250 kB gzipped) plus 286 kB of CSS, and Vite warns about it on every build. Splitting by route would keep Insights and the simulator out of the first load of the directory. Fine on an office network; worth doing before anyone uses it on a slow one.
 
+**5. A view of one role across countries.**
+Comparing one role across countries, such as "what do we pay a Senior Engineer in India compared with the US?", currently needs two screens: each country's job-title table. A view showing one job title's stats side by side per country, each in its local currency, would answer it in one. The data is already there; it is the per-job-title statistics grouped the other way round.
 
 ## Product direction
 
 **1. Pay equity analysis.**
 The obvious next question after "who is an outlier?" is whether pay differs by gender or other protected characteristics for the same role. It needs data this app does not hold, and that data needs a privacy and legal review per country before it is collected, so it comes after access control and is a product decision, not a feature to slip in.
+
+## Lower priority
+
+The rest of what `REQUIREMENTS.md` left out on purpose. None of it is needed to answer the core pay questions.
+
+**1. Applying raises from the simulator.**
+Bulk writes to salaries need an approval workflow, so this comes after access control. Until then the simulator only answers "what would it cost?".
+
+**2. Live FX rates.**
+They add an external dependency and make results non-deterministic. Worth it only when the USD figures need to be more than indicative (ADR 002).
+
+**3. Bonus, equity, allowances and benefits.**
+v1 covers base salary only. Total compensation needs its own data model before it needs screens.
+
+**4. Reporting lines, approvals and performance data.**
+
+**5. A mobile UI.**
+
+**6. i18n.**
+
+Payroll, tax, deductions and payslips are not on this list: that is a different product, not a later step of this one.
