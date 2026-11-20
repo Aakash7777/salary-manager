@@ -74,4 +74,24 @@ flowchart LR
 - Insights: one slim query, then count/min/median/avg/max in memory with the pure `summarize` function (no SQL GROUP BY: it was not needed). Target < 100 ms. **Measured: summary 9.7 ms, countries 9.9 ms, India's job titles and outliers 7.1 ms** (median of 15 requests; the slowest single request was 27 ms).
 - Employee detail with role median: **2.0 ms**.
 - CSV export of all 10,000 employees (1.13 MB, streamed in batches of 1,000): **133 ms** median, 146 ms slowest of 15 runs.
-- All timings are full HTTP round trips with curl to the built API on localhost, against the 10,000-employee seed in a SQLite file (Node 26, Windows 11, 2026-11-19). They are a single-user check, not a load test.
+- All timings are full HTTP round trips with curl to the built API on localhost, against the 10,000-employee seed in a SQLite file (Node 26, Windows 11, 2026-11-19). They are a single-user check; the load test is in the next section.
+
+## Load test (measured)
+`npm run load-test` (`scripts/load-test.js`) starts the built API on a throwaway database with the 10,000-employee seed and runs autocannon against each endpoint in turn. Measured on 2026-11-20 with 10 concurrent connections for 10 seconds per endpoint, API and load generator on the same laptop (Node 26.13.1, Windows 11, 12 logical CPUs). No request failed. p50, p95 and p99 are computed from every response time, because autocannon does not report p95.
+
+| Endpoint | Requests/s | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) |
+|---|---|---|---|---|---|
+| Directory: default page | 787 | 12.5 | 14.5 | 16.6 | 30.2 |
+| Directory: search + country + salary sort | 271 | 36.5 | 40.4 | 50.1 | 74.4 |
+| Directory: last page (page 400) | 85 | 115.9 | 130.0 | 137.1 | 231.9 |
+| Directory: 100 rows per page | 531 | 18.5 | 21.6 | 24.4 | 53.9 |
+| Insights: summary | 112 | 87.9 | 96.9 | 104.6 | 178.2 |
+| Insights: countries | 107 | 92.0 | 102.1 | 108.6 | 175.3 |
+| Insights: India job titles + outliers | 155 | 62.8 | 76.9 | 90.7 | 120.6 |
+
+What the numbers say:
+- **The directory target (p95 < 300 ms) holds under this load**, including the slowest case measured, the last page at 130 ms.
+- **Throughput is set by how long one request takes, because requests run one at a time.** better-sqlite3 is synchronous, so a request holds the event loop from query to JSON. Requests per second is about 1 / (time for one request), and latency is about that time multiplied by the number of connections. More connections add waiting, not throughput.
+- **A deep page costs about nine times a first page** (85 against 787 requests per second). The likely cause, not profiled: reaching page 400 in name order means sorting every row and skipping 9,975 of them, and the sort uses `COLLATE NOCASE`, which the plain `(full_name)` index does not match. If it ever matters: an index on `full_name COLLATE NOCASE`, or keyset pagination.
+- **Each insights request reads every employee and computes in memory**, about 9 ms of blocking work, so about 110 requests per second. That is far more than one HR team produces, and it is the first thing to move into SQL or precompute as the data grows.
+- The cost model and the exits are in [ADR 001](adr/001-sqlite-and-single-deployable.md).

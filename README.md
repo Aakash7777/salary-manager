@@ -53,6 +53,31 @@ Measured on 2026-11-20 with V8 coverage. Every source file counts, including fil
 - **The entry points, at 0%:** `apps/api/src/main.ts`, `apps/api/src/seed/seed-cli.ts` and `apps/web/src/main.tsx`. They wire things together and were checked by running the app and the Docker image, not by tests.
 - **Branches in the API (80%):** mostly defensive fallbacks that the tests cannot reach with valid data, such as the `?? 0` defaults for an empty group in `insights.service.ts` and the "should never happen" guards in the repository and `employees.service.ts`.
 
+## Load test
+
+```bash
+npm run load-test   # builds the API, starts it on a throwaway seeded database, runs autocannon
+```
+
+The script is `scripts/load-test.js`. It is not part of `npm test`: the numbers depend on the machine, so they are recorded here instead of asserted. `LOAD_TEST_CONNECTIONS` and `LOAD_TEST_DURATION` (seconds) change the load.
+
+Measured on 2026-11-20: 10 concurrent connections for 10 seconds per endpoint, 10,000 employees in a SQLite file, API and load generator on the same laptop (Node 26.13.1, Windows 11, 12 logical CPUs). No request failed.
+
+| Endpoint | Requests/s | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) |
+|---|---|---|---|---|---|
+| Directory: default page | 787 | 12.5 | 14.5 | 16.6 | 30.2 |
+| Directory: search + country + salary sort | 271 | 36.5 | 40.4 | 50.1 | 74.4 |
+| Directory: last page (page 400) | 85 | 115.9 | 130.0 | 137.1 | 231.9 |
+| Directory: 100 rows per page | 531 | 18.5 | 21.6 | 24.4 | 53.9 |
+| Insights: summary | 112 | 87.9 | 96.9 | 104.6 | 178.2 |
+| Insights: countries | 107 | 92.0 | 102.1 | 108.6 | 175.3 |
+| Insights: India job titles + outliers | 155 | 62.8 | 76.9 | 90.7 | 120.6 |
+
+- **The requirement is met at this load:** the directory's p95 is 14.5 ms for the default page and 130 ms for the slowest case measured, against a target of 300 ms.
+- **The slowest request is the last page of the directory.** It takes about 12 ms of server time per request against about 1.3 ms for the first page.
+- **Latency here is mostly queueing.** The database driver is synchronous, so the API handles one request at a time: with 10 connections each request waits for about nine others. More connections would add waiting, not throughput. See [ADR 001](docs/adr/001-sqlite-and-single-deployable.md).
+- This is one laptop talking to itself, not the deployed app: there is no network in it, and the load generator competes with the API for CPU.
+
 ## Environment variables
 
 | Variable | Default | Purpose |

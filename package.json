@@ -17,6 +17,7 @@
     "seed": "npm run build -w @salary-manager/shared && npm run seed -w @salary-manager/api --",
     "test": "npm run test --workspaces --if-present",
     "coverage": "npm run coverage --workspaces --if-present",
+    "load-test": "npm run build -w @salary-manager/shared && npm run build -w @salary-manager/api && node scripts/load-test.js",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "npm run typecheck --workspaces --if-present"
@@ -25,6 +26,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
+    "autocannon": "^9.0.0",
     "concurrently": "^10.0.7",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
