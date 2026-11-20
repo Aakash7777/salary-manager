@@ -11,8 +11,8 @@ The whole app ships as **one Docker image**: Nest serves the built React app und
 
 ```mermaid
 flowchart LR
-  UI[React SPA] -->|JSON /api| C[Controllers<br/>zod validation]
-  C --> S[Services<br/>use cases, transactions]
+  UI[React SPA] -->|JSON /api| C[Controllers<br/>thin, pass input through]
+  C --> S[Services<br/>zod validation, use cases, transactions]
   S --> D[Domain<br/>pure fns: stats, money, FX]
   S --> R[Repositories<br/>Drizzle]
   R --> DB[(SQLite)]
@@ -23,7 +23,7 @@ flowchart LR
 |---|---|---|
 | **SQLite** | 10k rows is tiny. There's no server to run, and tests can use `:memory:` with real SQL. | Only one writer at a time. Fine for one HR team. Move to Postgres if there are many concurrent writers. |
 | **Drizzle + better-sqlite3** | Typed SQL with no codegen step, and a synchronous driver that keeps tests fast and simple. | Smaller ecosystem than Prisma. |
-| **Shared zod schemas** | One place defines validation, used by the API pipe and the React forms. | Couples the two apps to one package (acceptable in a monorepo). |
+| **Shared zod schemas** | One place defines validation, used by the API's services and the React forms. The services validate, not a controller pipe, because some rules need the clock and the stored employee ([ADR 004](adr/004-validation-in-the-service-with-shared-zod-schemas.md)). | Couples the two apps to one package (acceptable in a monorepo). |
 | **Money as integer minor units + currency** | Floating-point money causes rounding bugs. The currency comes from the country, so it can't be entered inconsistently. | Values must be formatted at the edges. |
 | **Countries and FX as versioned config, not a table** | Small, rarely changes, and reviewed in a PR. | Changing it needs a deploy. |
 | **Median computed in a pure function** | SQLite has no MEDIAN. Sorting 10k integers takes milliseconds and the function is easy to unit-test. | At around 1M rows: precompute or use window functions. |

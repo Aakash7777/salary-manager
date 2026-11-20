@@ -16,7 +16,7 @@ The prompt for each stage is in `docs/prompts/PROMPTS.md`.
 9. `feat(api):` salary change + history in one transaction; reject future dates (T)
 10. `feat(api):` edit details (no salary), country change needs new salary (T)
 11. `feat(api):` delete + 404 handling (T)
-12. `feat(api):` controllers + zod pipe + e2e tests
+12. `feat(api):` thin controllers (validation stays in the services, see ADR 004) + e2e tests
 13. `feat(api):` deterministic 10k seed script; record timing
 
 ## Day 2: insights, UI, ship
