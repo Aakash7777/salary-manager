@@ -30,6 +30,36 @@ describe('app shell', () => {
     );
   });
 
+  it('links to the Raise simulator from the sidebar, after Employees and Insights', () => {
+    renderApp('/employees');
+
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Employees',
+      'Insights',
+      'Raise simulator',
+    ]);
+    expect(links[2]).toHaveAttribute('href', '/simulator');
+  });
+
+  it('goes to the Raise simulator from the sidebar and marks it as the current section', async () => {
+    const { user } = renderApp('/employees');
+
+    await user.click(screen.getByRole('link', { name: 'Raise simulator' }));
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Raise simulator' })).toBeVisible();
+    expect(currentPath()).toBe('/simulator');
+    const nav = screen.getByRole('navigation');
+    expect(within(nav).getByRole('link', { name: 'Raise simulator' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(nav).getByRole('link', { name: 'Employees' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
   it('marks the current section in the sidebar', () => {
     renderApp('/insights');
 
@@ -63,6 +93,7 @@ describe('app shell', () => {
   it.each([
     { url: '/insights', heading: 'Insights' },
     { url: '/insights/IN', heading: 'India' },
+    { url: '/simulator', heading: 'Raise simulator' },
   ])('has a page at $url', ({ url, heading }) => {
     renderApp(url);
 

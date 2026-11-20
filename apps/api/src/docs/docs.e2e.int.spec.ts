@@ -129,7 +129,7 @@ describe('HTTP API documentation', () => {
       // The documentation's own three routes are not part of the API it describes.
       const apiRoutes = registeredRoutes(app).filter((route) => !route.includes('/api/docs'));
 
-      expect(apiRoutes).toHaveLength(12);
+      expect(apiRoutes).toHaveLength(13);
       expect(documentedRoutes(document)).toEqual(apiRoutes);
     });
 
@@ -185,6 +185,26 @@ describe('HTTP API documentation', () => {
         content: {
           'application/json': { schema: { $ref: '#/components/schemas/CreateEmployeeInput' } },
         },
+      });
+    });
+
+    it('documents the raise simulator with its request body from the shared zod schema', async () => {
+      const document = await openApiDocument();
+      const simulate = document.paths['/api/simulations/raise']?.post;
+
+      expect(simulate?.summary).toMatch(/nothing is saved/i);
+      expect(simulate?.requestBody).toMatchObject({
+        content: {
+          'application/json': { schema: { $ref: '#/components/schemas/SimulateRaiseInput' } },
+        },
+      });
+      expect(document.components.schemas.SimulateRaiseInput).toMatchObject({
+        required: ['pct'],
+        additionalProperties: false,
+        properties: { pct: { type: 'number', minimum: 0, maximum: 50 } },
+      });
+      expect(document.components.schemas.RaiseSimulation).toMatchObject({
+        required: ['headcount', 'byCurrency', 'increaseUsdMinor', 'fxTableVersion'],
       });
     });
 
@@ -245,6 +265,8 @@ describe('HTTP API documentation', () => {
         '404',
         '500',
       ]);
+      // 200, not 201: the simulator creates nothing.
+      expect(statuses('/api/simulations/raise', 'post')).toEqual(['200', '400', '500']);
       expect(statuses('/health', 'get')).toEqual(['200', '500', '503']);
     });
   });

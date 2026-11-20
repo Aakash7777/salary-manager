@@ -91,6 +91,17 @@ describe('employeeJsonSchemas', () => {
     });
   });
 
+  it('describes the raise simulation input: a required percentage from 0 to 50 and optional filters', () => {
+    const { properties = {}, required, additionalProperties } = schemas.SimulateRaiseInput;
+
+    expect(required).toEqual(['pct']);
+    expect(additionalProperties).toBe(false);
+    expect(properties.pct).toMatchObject({ type: 'number', minimum: 0, maximum: 50 });
+    expect(Object.keys(properties.filters?.properties ?? {})).toEqual(
+      expect.arrayContaining(['search', 'country', 'department', 'jobTitle']),
+    );
+  });
+
   it('leaves out what an OpenAPI document does not want: the $schema marker and long date patterns', () => {
     const text = JSON.stringify(schemas);
 

@@ -446,5 +446,73 @@ handlers.push(
   }),
 );
 
+// ---------------------------------------------------------------------------------------------
+// Raise simulator: an 8% raise for 6,850 people in three currencies.
+// ---------------------------------------------------------------------------------------------
+
+/** Rows in order of currency code, as the API returns them. Every amount is in that row's currency. */
+export const SIMULATION = {
+  headcount: 6_850,
+  byCurrency: [
+    {
+      currency: 'EUR',
+      headcount: 1_100,
+      // EUR 78,320,000 + 6,265,600 = 84,585,600
+      currentTotalMinor: 7_832_000_000,
+      increaseMinor: 626_560_000,
+      newTotalMinor: 8_458_560_000,
+    },
+    {
+      currency: 'INR',
+      headcount: 4_200,
+      // INR 7,85,10,60,000 + 62,80,84,800 = 8,47,91,44,800
+      currentTotalMinor: 785_106_000_000,
+      increaseMinor: 62_808_480_000,
+      newTotalMinor: 847_914_480_000,
+    },
+    {
+      currency: 'USD',
+      headcount: 1_550,
+      // USD 193,500,000 + 15,480,000 = 208,980,000
+      currentTotalMinor: 19_350_000_000,
+      increaseMinor: 1_548_000_000,
+      newTotalMinor: 20_898_000_000,
+    },
+  ],
+  // EUR 6,265,600 x 1.08 + INR 628,084,800 x 0.012 + USD 15,480,000
+  //   = 6,766,848.00 + 7,537,017.60 + 15,480,000.00 = USD 29,783,865.60, shown as "USD 29,783,866".
+  increaseUsdMinor: 2_978_386_560,
+  fxTableVersion: '2026-11',
+};
+
+export const NOBODY_MATCHES = {
+  headcount: 0,
+  byCurrency: [],
+  increaseUsdMinor: 0,
+  fxTableVersion: '2026-11',
+};
+
+export const SIMULATE_RAISE_URL = '*/api/simulations/raise';
+
+export interface SimulationRequest {
+  filters?: Record<string, unknown>;
+  pct?: unknown;
+}
+
+/** The body of every POST /api/simulations/raise the app has made in the current test. */
+export const simulationRequests: SimulationRequest[] = [];
+
+export function lastSimulationRequest(): SimulationRequest {
+  return simulationRequests.at(-1) ?? {};
+}
+
+/** Answers every simulation with the same result, and remembers what was asked. */
+handlers.push(
+  http.post(SIMULATE_RAISE_URL, async ({ request }) => {
+    simulationRequests.push((await request.json()) as SimulationRequest);
+    return HttpResponse.json(SIMULATION);
+  }),
+);
+
 // Created last, once every handler above exists.
 export const server = setupServer(...handlers);
