@@ -65,16 +65,16 @@ Measured on 2026-11-20: 10 concurrent connections for 10 seconds per endpoint, 1
 
 | Endpoint | Requests/s | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) |
 |---|---|---|---|---|---|
-| Directory: default page | 787 | 12.5 | 14.5 | 16.6 | 30.2 |
-| Directory: search + country + salary sort | 271 | 36.5 | 40.4 | 50.1 | 74.4 |
-| Directory: last page (page 400) | 85 | 115.9 | 130.0 | 137.1 | 231.9 |
-| Directory: 100 rows per page | 531 | 18.5 | 21.6 | 24.4 | 53.9 |
-| Insights: summary | 112 | 87.9 | 96.9 | 104.6 | 178.2 |
-| Insights: countries | 107 | 92.0 | 102.1 | 108.6 | 175.3 |
-| Insights: India job titles + outliers | 155 | 62.8 | 76.9 | 90.7 | 120.6 |
+| Directory: default page | 2713 | 3.5 | 4.7 | 5.7 | 23.7 |
+| Directory: search + country + salary sort | 293 | 33.4 | 38.3 | 41.4 | 67.0 |
+| Directory: last page (page 400) | 1833 | 5.2 | 6.8 | 8.3 | 16.1 |
+| Directory: 100 rows per page | 1940 | 4.9 | 6.3 | 7.7 | 17.3 |
+| Insights: summary | 118 | 82.4 | 93.4 | 100.6 | 164.2 |
+| Insights: countries | 114 | 86.0 | 96.1 | 117.3 | 169.4 |
+| Insights: India job titles + outliers | 177 | 55.6 | 61.5 | 80.6 | 111.9 |
 
-- **The requirement is met at this load:** the directory's p95 is 14.5 ms for the default page and 130 ms for the slowest case measured, against a target of 300 ms.
-- **The slowest request is the last page of the directory.** It takes about 12 ms of server time per request against about 1.3 ms for the first page.
+- **The requirement is met at this load:** the directory's p95 is 4.7 ms for the default page and 38.3 ms for the slowest case measured (search + country + salary sort), against a target of 300 ms.
+- **The first run found a real problem, now fixed.** The last page in name order managed 85 requests per second with a p95 of 130 ms, because the name index did not match the case-insensitive sort and SQLite sorted all 10,000 rows on every request. With the index on `full_name COLLATE NOCASE` it is 1,833 requests per second with a p95 of 6.8 ms, and the default page went from 787 to 2,713 requests per second.
 - **Latency here is mostly queueing.** The database driver is synchronous, so the API handles one request at a time: with 10 connections each request waits for about nine others. More connections would add waiting, not throughput. See [ADR 001](docs/adr/001-sqlite-and-single-deployable.md).
 - This is one laptop talking to itself, not the deployed app: there is no network in it, and the load generator competes with the API for CPU.
 

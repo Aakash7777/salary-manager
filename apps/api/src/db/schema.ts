@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const employees = sqliteTable(
@@ -20,7 +21,9 @@ export const employees = sqliteTable(
     uniqueIndex('employees_email_unique').on(table.email),
     index('employees_country_code_job_title_idx').on(table.countryCode, table.jobTitle),
     index('employees_department_idx').on(table.department),
-    index('employees_full_name_idx').on(table.fullName),
+    // The directory sorts names ignoring case, and SQLite only uses an index for an ORDER BY
+    // whose collation matches the index's.
+    index('employees_full_name_idx').on(sql`${table.fullName} COLLATE NOCASE`),
   ],
 );
 

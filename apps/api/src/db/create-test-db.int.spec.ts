@@ -1,3 +1,4 @@
+import { asc, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createTestDb } from './create-test-db.js';
 import { employees, salaryChanges } from './schema.js';
@@ -133,6 +134,26 @@ describe('createTestDb', () => {
         { columns: 'email', unique: true },
       ]),
     );
+  });
+
+  it('reads the directory in case-insensitive name order straight from the name index, without sorting', () => {
+    const db = createTestDb();
+    // The same ordering the directory uses, on its most expensive page: the last one.
+    const lastPageByName = db
+      .select()
+      .from(employees)
+      .orderBy(asc(sql`${employees.fullName} COLLATE NOCASE`), asc(employees.id))
+      .limit(25)
+      .offset(9_975)
+      .toSQL();
+
+    const plan = db.$client
+      .prepare(`EXPLAIN QUERY PLAN ${lastPageByName.sql}`)
+      .all(...lastPageByName.params) as { detail: string }[];
+
+    expect(plan.map((step) => step.detail)).toEqual([
+      'SCAN employees USING INDEX employees_full_name_idx',
+    ]);
   });
 
   it('indexes salary changes by employee, for the history lookup', () => {

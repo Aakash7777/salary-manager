@@ -34,7 +34,7 @@ flowchart LR
 - `employees(id, full_name, email UNIQUE, job_title, department, country_code, currency, salary_minor INT, employment_type, hire_date, created_at, updated_at)`
 - `salary_changes(id, employee_id FK ON DELETE CASCADE, old_salary_minor INT NULL, old_currency NULL, new_salary_minor INT, currency, effective_date, reason, created_at)`
   - `old_salary_minor` and `old_currency` are null on the "Starting salary" row. On a normal change `old_currency` equals `currency`. On a country change it is the previous currency, so the old value is never read in the wrong currency.
-- Indexes on `employees`: `(country_code, job_title)`, `(department)`, `(full_name)`, `(email)` unique.
+- Indexes on `employees`: `(country_code, job_title)`, `(department)`, `(full_name COLLATE NOCASE)`, `(email)` unique. The name index carries the collation because the directory sorts names ignoring case, and SQLite only uses an index whose collation matches the ORDER BY.
 - Index on `salary_changes`: `(employee_id)`, for the history lookup on the employee page.
 
 ## API
@@ -81,17 +81,26 @@ flowchart LR
 
 | Endpoint | Requests/s | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) |
 |---|---|---|---|---|---|
-| Directory: default page | 787 | 12.5 | 14.5 | 16.6 | 30.2 |
-| Directory: search + country + salary sort | 271 | 36.5 | 40.4 | 50.1 | 74.4 |
-| Directory: last page (page 400) | 85 | 115.9 | 130.0 | 137.1 | 231.9 |
-| Directory: 100 rows per page | 531 | 18.5 | 21.6 | 24.4 | 53.9 |
-| Insights: summary | 112 | 87.9 | 96.9 | 104.6 | 178.2 |
-| Insights: countries | 107 | 92.0 | 102.1 | 108.6 | 175.3 |
-| Insights: India job titles + outliers | 155 | 62.8 | 76.9 | 90.7 | 120.6 |
+| Directory: default page | 2713 | 3.5 | 4.7 | 5.7 | 23.7 |
+| Directory: search + country + salary sort | 293 | 33.4 | 38.3 | 41.4 | 67.0 |
+| Directory: last page (page 400) | 1833 | 5.2 | 6.8 | 8.3 | 16.1 |
+| Directory: 100 rows per page | 1940 | 4.9 | 6.3 | 7.7 | 17.3 |
+| Insights: summary | 118 | 82.4 | 93.4 | 100.6 | 164.2 |
+| Insights: countries | 114 | 86.0 | 96.1 | 117.3 | 169.4 |
+| Insights: India job titles + outliers | 177 | 55.6 | 61.5 | 80.6 | 111.9 |
 
 What the numbers say:
-- **The directory target (p95 < 300 ms) holds under this load**, including the slowest case measured, the last page at 130 ms.
+- **The directory target (p95 < 300 ms) holds under this load.** The slowest case measured is search + country + salary sort at 38.3 ms.
 - **Throughput is set by how long one request takes, because requests run one at a time.** better-sqlite3 is synchronous, so a request holds the event loop from query to JSON. Requests per second is about 1 / (time for one request), and latency is about that time multiplied by the number of connections. More connections add waiting, not throughput.
-- **A deep page costs about nine times a first page** (85 against 787 requests per second). The likely cause, not profiled: reaching page 400 in name order means sorting every row and skipping 9,975 of them, and the sort uses `COLLATE NOCASE`, which the plain `(full_name)` index does not match. If it ever matters: an index on `full_name COLLATE NOCASE`, or keyset pagination.
+- **The first run of this test found a missing index, now fixed.** The name index was on plain `full_name`, but the directory sorts with `COLLATE NOCASE`, so `EXPLAIN QUERY PLAN` showed `SCAN employees` + `USE TEMP B-TREE FOR ORDER BY`: a full sort of 10,000 rows on every request. Migration `0001_name_index_ignores_case` rebuilt the index with the collation and the plan became `SCAN employees USING INDEX employees_full_name_idx`. A test asserts that plan.
+
+  | Last page (page 400), name order | Requests/s | p50 (ms) | p95 (ms) | p99 (ms) |
+  |---|---|---|---|---|
+  | Before (plain index) | 85 | 115.9 | 130.0 | 137.1 |
+  | After (`COLLATE NOCASE` index) | 1833 | 5.2 | 6.8 | 8.3 |
+
+  The default page improved too, from 787 to 2,713 requests per second, because it no longer sorts either. A deep page still walks the index to its offset (1,833 against 2,713 requests per second); keyset pagination would remove that if it ever matters.
+- **Search with a filter and a salary sort is now the slowest directory request** (293 requests per second). A `LIKE '%text%'` search cannot use an index, and the matches are then sorted by salary; its query plan has not been examined yet.
+- The single-request timings in the performance notes above were taken before this index change; the directory figures there are now pessimistic.
 - **Each insights request reads every employee and computes in memory**, about 9 ms of blocking work, so about 110 requests per second. That is far more than one HR team produces, and it is the first thing to move into SQL or precompute as the data grows.
 - The cost model and the exits are in [ADR 001](adr/001-sqlite-and-single-deployable.md).
