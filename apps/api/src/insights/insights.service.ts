@@ -88,11 +88,15 @@ export class InsightsService {
     const rowsByCountry = groupBy(rows, (row) => row.countryCode);
 
     // Amounts in different currencies are never added together: each country's total is
-    // converted to USD on its own, and only the USD amounts are summed.
-    let payrollUsdMinor = 0;
+    // converted to USD on its own, and only the USD amounts are summed. Both sums run in
+    // BigInt, because a total can pass Number.MAX_SAFE_INTEGER even when no salary does.
+    let payrollUsdMinor = 0n;
     for (const [countryCode, countryRows] of rowsByCountry) {
-      const localTotalMinor = countryRows.reduce((total, row) => total + row.salaryMinor, 0);
-      payrollUsdMinor += toUsdMinor(localTotalMinor, currencyFor(countryCode));
+      const localTotalMinor = countryRows.reduce(
+        (total, row) => total + BigInt(row.salaryMinor),
+        0n,
+      );
+      payrollUsdMinor += BigInt(toUsdMinor(localTotalMinor, currencyFor(countryCode)));
     }
 
     return {
@@ -100,7 +104,7 @@ export class InsightsService {
       countryCount: rowsByCountry.size,
       departmentCount: new Set(rows.map((row) => row.department)).size,
       jobTitleCount: new Set(rows.map((row) => row.jobTitle)).size,
-      payrollUsdMinor,
+      payrollUsdMinor: Number(payrollUsdMinor),
       fxTableVersion: FX_TABLE_VERSION,
     };
   }

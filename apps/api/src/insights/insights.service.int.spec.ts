@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FixedClock } from '../clock/clock.js';
 import { createTestDb } from '../db/create-test-db.js';
+import { employees as employeesTable } from '../db/schema.js';
 import { EmployeesRepository } from '../employees/employees.repository.js';
 import { EmployeesService } from '../employees/employees.service.js';
 import { InvalidInputError } from '../employees/errors.js';
@@ -17,7 +18,7 @@ function setup({ withPayFixture }: { withPayFixture: boolean }) {
   if (withPayFixture) {
     createPayFixture(employees);
   }
-  return { employees, insights: new InsightsService(new InsightsRepository(db)) };
+  return { db, employees, insights: new InsightsService(new InsightsRepository(db)) };
 }
 
 function addEmployee(employees: EmployeesService, countryCode: string, salaryMajor: number): void {
@@ -60,6 +61,36 @@ describe('InsightsService.getSummary', () => {
     // Total INR 3,000,000.84 = 300,000,084 paise x 0.012 = 3,600,001.008 cents -> 3,600,001.
     // Converting each salary first would round 1,200,000.504 and 2,400,000.504 up: 3,600,002.
     expect(insights.getSummary().payrollUsdMinor).toBe(3_600_001);
+  });
+
+  it('adds a country’s salaries exactly when their total is past 2^53 minor units', () => {
+    const { db, insights } = setup({ withPayFixture: false });
+    // Written straight to the table: a salary with cents this large cannot be sent as a JSON
+    // number, but the column can hold it, and the summary must not be the place that loses it.
+    const hugeSalariesMinor = [9_000_000_000_000_001, 1_000_000_000_000_000];
+    for (const [index, salaryMinor] of hugeSalariesMinor.entries()) {
+      db.insert(employeesTable)
+        .values({
+          fullName: `Employee SG ${index}`,
+          email: `employee.sg.${index}@acme.test`,
+          jobTitle: 'Engineer',
+          department: 'Engineering',
+          countryCode: 'SG',
+          currency: 'SGD',
+          salaryMinor,
+          employmentType: 'FULL_TIME',
+          hireDate: '2022-01-10',
+          createdAt: NOW,
+          updatedAt: NOW,
+        })
+        .run();
+    }
+
+    // Total SGD 100,000,000,000,000.01 = 10,000,000,000,000,001 cents, which is past 2^53 and odd,
+    // so number addition gives 10,000,000,000,000,000.
+    //   exact: 10,000,000,000,000,001 x 0.74 = 7,400,000,000,000,000.74 -> 7,400,000,000,000,001
+    //   lossy: 10,000,000,000,000,000 x 0.74 = 7,400,000,000,000,000
+    expect(insights.getSummary().payrollUsdMinor).toBe(7_400_000_000_000_001);
   });
 
   it('reports zeros for an empty database', () => {

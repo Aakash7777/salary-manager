@@ -120,6 +120,16 @@ describe('toUsdMinor', () => {
     expect(toUsdMinor(5_000_000_000_050, 'GBP')).toBe(6_350_000_000_064);
   });
 
+  it('converts a total past 2^53, given as a bigint, without losing a minor unit', () => {
+    // SGD 100,000,000,000,000.01 at 0.74 = 7,400,000,000,000,000.74 cents -> ...001.
+    // As a number this total cannot be held: it becomes 10,000,000,000,000,000 and converts to ...000.
+    expect(toUsdMinor(10_000_000_000_000_001n, 'SGD')).toBe(7_400_000_000_000_001);
+  });
+
+  it('throws on a negative bigint amountMinor', () => {
+    expect(() => toUsdMinor(-100n, 'GBP')).toThrow('amountMinor must not be negative: -100');
+  });
+
   it('throws on an unknown currency', () => {
     expect(() => toUsdMinor(100, 'JPY')).toThrow('Unknown currency: JPY');
   });

@@ -37,7 +37,7 @@ The requirements promise "no silent data errors: money is never a float, and no 
 - **All five currencies have 2 minor units, and the code leans on that** (the 2-decimal check, the maximum salary, and `toUsdMinor` not rescaling). Adding JPY or KWD means touching those three places.
 - **Sorting the directory by salary compares raw minor units across currencies**, so INR 1,800,000 sorts above USD 165,000. This is deliberate; the UI says so, and filtering by country makes the sort meaningful.
 - The USD payroll is only as good as a hand-maintained rate table, and converting totals instead of each salary gives a slightly different rounding than a per-row conversion would.
-- The per-country total inside `getSummary` is a plain number sum. It is exact while a country's payroll stays under 2^53 minor units (about 90 trillion in major units); `summarize` already uses `BigInt` and this sum could do the same.
+- **The API reports amounts as JSON numbers.** Sums run in `BigInt` (the per-country totals in `getSummary` and `summarize`, and the conversion in `toUsdMinor`, which accepts a `bigint` total), but each result is returned as a number. A statistic or a USD payroll total past 2^53 minor units (about 90 trillion in major units) would lose its last digits at that final step. Nothing checks for it today.
 
 **When this would change**
 

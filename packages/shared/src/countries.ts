@@ -49,7 +49,8 @@ export function minorUnitsFor(currency: string): number {
   return firstCountryUsing(currency).minorUnits;
 }
 
-export function toUsdMinor(amountMinor: number, currency: string): number {
+/** Pass a bigint when the amount is a total that may be past Number.MAX_SAFE_INTEGER. */
+export function toUsdMinor(amountMinor: number | bigint, currency: string): number {
   assertMinorAmount(amountMinor);
   const country = firstCountryUsing(currency);
 
